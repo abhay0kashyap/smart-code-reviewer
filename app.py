@@ -18,7 +18,8 @@ def run_code():
 
     explanation = None
     if execution_result["error"]:
-        explanation = explain_error(execution_result["error"])
+        explanation = explain_error(execution_result["error"], code)
+
 
     analysis_result = analyze_code(code)
 

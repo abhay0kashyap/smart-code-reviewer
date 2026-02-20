@@ -156,43 +156,36 @@ async function runCode() {
     // =============================
     // ERROR SECTION
     // =============================
-    if (data.execution.error) {
+    if (data.explanation) {
 
-        output += `
-        <div class="card">
-            <div class="error-title">Actual Python Error:</div>
-            <pre>${data.execution.error}</pre>
-        </div>
-        `;
+    output += `
+    <div class="card">
+        <strong>Error is in line ${data.explanation.error_line}</strong>
+    </div>
+    `;
 
-        if (data.explanation) {
+    output += `
+    <div class="card">
+        <strong>Your code:</strong>
+        <pre>${data.explanation.wrong_code}</pre>
+    </div>
+    `;
 
-            output += `
-            <div class="card">
-                <strong>What Happened?</strong>
-                <p>${data.explanation.explanation}</p>
-            </div>
-            `;
+    output += `
+    <div class="card">
+        <strong>Correct code:</strong>
+        <pre>${data.explanation.correct_line}</pre>
+    </div>
+    `;
 
-            if (data.explanation.fix_steps) {
+    output += `
+    <div class="card">
+        <strong>Corrected full program:</strong>
+        <pre>${data.explanation.fixed_full_code}</pre>
+    </div>
+    `;
+}
 
-                output += `
-                <div class="card">
-                    <strong>How To Fix It:</strong>
-                    <ul>
-                `;
-
-                data.explanation.fix_steps.forEach(step => {
-                    output += `<li>${step}</li>`;
-                });
-
-                output += `
-                    </ul>
-                </div>
-                `;
-            }
-        }
-    }
 
     // =============================
     // CODE QUALITY SCORE

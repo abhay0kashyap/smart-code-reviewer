@@ -1,60 +1,68 @@
-def explain_error(error: str):
+def explain_error(error: str, code: str):
 
     if error is None:
         return None
 
-    if "SyntaxError" in error:
-        return {
-            "type": "SyntaxError",
-            "explanation": "Python cannot understand your code syntax.",
-            "fix_steps": [
-                "Check if you forgot colon ':'",
-                "Check brackets (), {}, []",
-                "Check quotes ' or \"",
-                "Check spelling of keywords"
-            ]
-        }
+    lines = code.split("\n")
 
-    elif "NameError" in error:
-        return {
+    # Find error line number
+    error_line_number = None
+    for line in error.split("\n"):
+        if "line" in line:
+            try:
+                parts = line.split("line")
+                error_line_number = int(parts[1].split(",")[0].strip())
+                break
+            except:
+                pass
+
+    wrong_line = None
+    if error_line_number and error_line_number <= len(lines):
+        wrong_line = lines[error_line_number - 1]
+
+    explanation = {}
+    
+    if "NameError" in error:
+
+        explanation = {
             "type": "NameError",
-            "explanation": "You are using a variable that is not defined.",
-            "fix_steps": [
-                "Check spelling of variable name",
-                "Make sure variable is created first",
-                "Example: x = 10"
-            ]
+            "error_line": error_line_number,
+            "wrong_code": wrong_line,
+            "reason": "Python thinks 'hello' is a variable, but it is not defined.",
+            "fix": "If you want text, you must use quotes.",
+            "correct_line": f'print("hello")'
         }
 
-    elif "TypeError" in error:
-        return {
-            "type": "TypeError",
-            "explanation": "You used wrong data type.",
-            "fix_steps": [
-                "Check if mixing string and number",
-                "Convert types properly",
-                "Example: str(number)"
-            ]
+        fixed_lines = lines.copy()
+        if error_line_number:
+            fixed_lines[error_line_number - 1] = explanation["correct_line"]
+
+        explanation["fixed_full_code"] = "\n".join(fixed_lines)
+
+    elif "SyntaxError" in error:
+
+        explanation = {
+            "type": "SyntaxError",
+            "error_line": error_line_number,
+            "wrong_code": wrong_line,
+            "reason": "Your syntax is incorrect.",
+            "fix": "Check brackets, quotes, and colon.",
+            "correct_line": "Fix syntax properly"
         }
 
-    elif "IndentationError" in error:
-        return {
-            "type": "IndentationError",
-            "explanation": "Indentation is incorrect.",
-            "fix_steps": [
-                "Use proper spacing",
-                "Use same indentation level",
-                "Example: 4 spaces per block"
-            ]
-        }
+        explanation["fixed_full_code"] = code
 
     else:
-        return {
+
+        explanation = {
             "type": "Error",
-            "explanation": "Python encountered an error.",
-            "fix_steps": [
-                "Read error message carefully",
-                "Check code line mentioned",
-                "Fix syntax or logic"
-            ]
+            "error_line": error_line_number,
+            "wrong_code": wrong_line,
+            "reason": "There is an error in your code.",
+            "fix": "Fix based on error message.",
+            "correct_line": ""
         }
+
+        explanation["fixed_full_code"] = code
+
+    return explanation
