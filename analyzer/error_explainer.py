@@ -1,68 +1,28 @@
-def explain_error(error: str, code: str):
+def explain_error(error_type, error_message):
 
-    if error is None:
-        return None
+    explanations = {
+        "NameError": "You are using a variable that has not been defined.",
+        "SyntaxError": "Your code syntax is incorrect.",
+        "TypeError": "You used incompatible data types.",
+        "IndentationError": "Your indentation is incorrect.",
+        "ZeroDivisionError": "You cannot divide by zero.",
+        "IndexError": "You tried to access an index that doesn't exist.",
+        "KeyError": "You tried to access a key that doesn't exist in dictionary.",
+        "AttributeError": "Object does not have that attribute."
+    }
 
-    lines = code.split("\n")
+    fixes = {
+        "NameError": "Define the variable before using it.",
+        "SyntaxError": "Check brackets, quotes, and colons.",
+        "TypeError": "Check variable types.",
+        "IndentationError": "Fix indentation spacing.",
+        "ZeroDivisionError": "Ensure denominator is not zero.",
+        "IndexError": "Check list index range.",
+        "KeyError": "Check dictionary keys.",
+        "AttributeError": "Check object properties."
+    }
 
-    # Find error line number
-    error_line_number = None
-    for line in error.split("\n"):
-        if "line" in line:
-            try:
-                parts = line.split("line")
-                error_line_number = int(parts[1].split(",")[0].strip())
-                break
-            except:
-                pass
-
-    wrong_line = None
-    if error_line_number and error_line_number <= len(lines):
-        wrong_line = lines[error_line_number - 1]
-
-    explanation = {}
-    
-    if "NameError" in error:
-
-        explanation = {
-            "type": "NameError",
-            "error_line": error_line_number,
-            "wrong_code": wrong_line,
-            "reason": "Python thinks 'hello' is a variable, but it is not defined.",
-            "fix": "If you want text, you must use quotes.",
-            "correct_line": f'print("hello")'
-        }
-
-        fixed_lines = lines.copy()
-        if error_line_number:
-            fixed_lines[error_line_number - 1] = explanation["correct_line"]
-
-        explanation["fixed_full_code"] = "\n".join(fixed_lines)
-
-    elif "SyntaxError" in error:
-
-        explanation = {
-            "type": "SyntaxError",
-            "error_line": error_line_number,
-            "wrong_code": wrong_line,
-            "reason": "Your syntax is incorrect.",
-            "fix": "Check brackets, quotes, and colon.",
-            "correct_line": "Fix syntax properly"
-        }
-
-        explanation["fixed_full_code"] = code
-
-    else:
-
-        explanation = {
-            "type": "Error",
-            "error_line": error_line_number,
-            "wrong_code": wrong_line,
-            "reason": "There is an error in your code.",
-            "fix": "Fix based on error message.",
-            "correct_line": ""
-        }
-
-        explanation["fixed_full_code"] = code
-
-    return explanation
+    return {
+        "explanation": explanations.get(error_type, "Python encountered an error."),
+        "fix": fixes.get(error_type, "Check your code and fix the error.")
+    }

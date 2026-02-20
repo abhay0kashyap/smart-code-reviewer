@@ -11,23 +11,33 @@ def home():
 
 @app.route("/run", methods=["POST"])
 def run_code():
-    data = request.get_json()
-    code = data.get("code", "")
 
-    execution_result = execute_code(code)
+    code = request.json["code"]
+
+    execution = execute_code(code)
 
     explanation = None
-    if execution_result["error"]:
-        explanation = explain_error(execution_result["error"], code)
 
-
-    analysis_result = analyze_code(code)
+    if not execution["success"]:
+        explanation = explain_error(
+            execution["error_type"],
+            execution["error_message"]
+        )
 
     return jsonify({
-        "execution": execution_result,
-        "explanation": explanation,
-        "analysis": analysis_result
+        "execution": execution,
+        "explanation": explanation
     })
+
+@app.route("/analyze", methods=["POST"])
+def analyze():
+    code = request.json["code"]
+
+    analysis = analyze_code(code)
+
+    return jsonify(analysis)
 
 if __name__ == "__main__":
     app.run(debug=True)
+if __name__ == "__main__":
+    app.run(host="127.0.0.1", port=5000, debug=True)
