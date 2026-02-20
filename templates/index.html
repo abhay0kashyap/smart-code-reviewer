@@ -1,77 +1,88 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Beginner Coding Platform - Smart Reviewer</title>
+    <title>Beginner Coding Platform</title>
 
     <style>
         body {
-            font-family: Arial;
+            font-family: Arial, sans-serif;
             margin: 40px;
             background-color: #f4f6f8;
         }
 
         h1 {
-            color: #333;
+            margin-bottom: 10px;
         }
 
         textarea {
             width: 100%;
-            height: 220px;
-            padding: 10px;
+            height: 250px;
+            padding: 12px;
             font-family: monospace;
-            font-size: 14px;
+            font-size: 15px;
             border-radius: 6px;
             border: 1px solid #ccc;
+            resize: vertical;
         }
 
         button {
-            padding: 12px 25px;
-            margin-top: 12px;
-            font-size: 16px;
-            background-color: #007bff;
-            color: white;
-            border: none;
+            padding: 10px 20px;
+            margin-top: 10px;
+            margin-right: 10px;
+            font-size: 15px;
             border-radius: 6px;
+            border: none;
             cursor: pointer;
         }
 
+        .run-btn {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .clear-btn {
+            background-color: #6c757d;
+            color: white;
+        }
+
         button:hover {
-            background-color: #0056b3;
+            opacity: 0.9;
         }
 
         #result {
             margin-top: 25px;
-            padding: 15px;
+        }
+
+        .card {
             background: white;
-            border-radius: 6px;
+            padding: 15px;
+            border-radius: 8px;
             border: 1px solid #ddd;
-        }
-
-        .error {
-            color: red;
-            font-weight: bold;
-        }
-
-        .success {
-            color: green;
-            font-weight: bold;
-        }
-
-        .box {
             margin-top: 15px;
-            padding: 10px;
-            border-radius: 6px;
-            background: #f9f9f9;
-            border: 1px solid #ddd;
+        }
+
+        .error-title {
+            color: #c0392b;
+            font-weight: bold;
+        }
+
+        .success-title {
+            color: #27ae60;
+            font-weight: bold;
         }
 
         pre {
-            background: black;
+            background: #000;
             color: #00ff00;
-            padding: 10px;
+            padding: 12px;
             border-radius: 6px;
             overflow-x: auto;
         }
+
+        ul {
+            padding-left: 20px;
+        }
+
     </style>
 </head>
 
@@ -80,27 +91,29 @@
 <h1>🚀 Beginner Coding Platform with Smart Error Guide</h1>
 
 <p>
-Write your Python code below and click <b>Run Code</b>.  
-You will see:
+Write your Python code and click <b>Run Code</b>.  
+You’ll get:
 </p>
 
 <ul>
-    <li>Program Output</li>
-    <li>Error explanation (beginner friendly)</li>
-    <li>Code quality issues</li>
+    <li>Program output</li>
+    <li>Exact Python error</li>
+    <li>Beginner-friendly explanation</li>
+    <li>Step-by-step fix guidance</li>
     <li>Code quality score</li>
 </ul>
 
 <textarea id="code" placeholder="Example:
 print('Hello World')
 
-or try error:
+Try an error:
 print(x)
 "></textarea>
 
 <br>
 
-<button onclick="runCode()">Run Code</button>
+<button class="run-btn" onclick="runCode()">Run Code</button>
+<button class="clear-btn" onclick="clearCode()">Clear</button>
 
 <div id="result"></div>
 
@@ -109,6 +122,11 @@ print(x)
 async function runCode() {
 
     const code = document.getElementById("code").value;
+
+    if (!code.trim()) {
+        alert("Please write some Python code first.");
+        return;
+    }
 
     const response = await fetch("/run", {
         method: "POST",
@@ -120,64 +138,102 @@ async function runCode() {
 
     const data = await response.json();
 
-    let output = "<h2>Result</h2>";
+    let output = "";
 
-    // Execution Output
-    if (data.execution.success && data.execution.output) {
+    // =============================
+    // SUCCESS OUTPUT
+    // =============================
+    if (data.execution.success) {
+
         output += `
-        <div class="box">
-        <h3 class="success">Program Output:</h3>
-        <pre>${data.execution.output}</pre>
+        <div class="card">
+            <div class="success-title">Program Executed Successfully ✅</div>
+            <pre>${data.execution.output || "No output produced."}</pre>
         </div>
         `;
     }
 
-    // Error Explanation
+    // =============================
+    // ERROR SECTION
+    // =============================
     if (data.execution.error) {
+
         output += `
-        <div class="box">
-        <h3 class="error">Error Detected</h3>
-        <p><b>Error Type:</b> ${data.explanation.type}</p>
-        <p><b>Explanation:</b> ${data.explanation.explanation}</p>
-        <p><b>How to fix:</b> ${data.explanation.fix}</p>
+        <div class="card">
+            <div class="error-title">Actual Python Error:</div>
+            <pre>${data.execution.error}</pre>
         </div>
         `;
-    }
 
-    // Analysis Score
-    output += `
-    <div class="box">
-    <h3>Code Quality Score: ${data.analysis.score}/100</h3>
-    </div>
-    `;
-
-    // Issues List
-    if (data.analysis.issues.length > 0) {
-
-        output += "<div class='box'><h3>Code Issues:</h3>";
-
-        data.analysis.issues.forEach(issue => {
+        if (data.explanation) {
 
             output += `
-            <p class="error">
-            Line ${issue.line}: ${issue.message}
-            </p>
+            <div class="card">
+                <strong>What Happened?</strong>
+                <p>${data.explanation.explanation}</p>
+            </div>
             `;
 
-        });
+            if (data.explanation.fix_steps) {
 
-        output += "</div>";
+                output += `
+                <div class="card">
+                    <strong>How To Fix It:</strong>
+                    <ul>
+                `;
 
-    } else {
+                data.explanation.fix_steps.forEach(step => {
+                    output += `<li>${step}</li>`;
+                });
+
+                output += `
+                    </ul>
+                </div>
+                `;
+            }
+        }
+    }
+
+    // =============================
+    // CODE QUALITY SCORE
+    // =============================
+    if (data.analysis && data.analysis.score !== undefined) {
+        output += `
+        <div class="card">
+            <strong>Code Quality Score:</strong> ${data.analysis.score}/100
+        </div>
+        `;
+    }
+
+    // =============================
+    // CODE ISSUES
+    // =============================
+    if (data.analysis && data.analysis.issues && data.analysis.issues.length > 0) {
 
         output += `
-        <div class="box">
-        <p class="success">No code quality issues found.</p>
+        <div class="card">
+            <strong>Code Quality Issues:</strong>
+            <ul>
+        `;
+
+        data.analysis.issues.forEach(issue => {
+            output += `<li>Line ${issue.line}: ${issue.message}</li>`;
+        });
+
+        output += `
+            </ul>
         </div>
         `;
     }
 
     document.getElementById("result").innerHTML = output;
+}
+
+
+// CLEAR FUNCTION
+function clearCode() {
+    document.getElementById("code").value = "";
+    document.getElementById("result").innerHTML = "";
 }
 
 </script>
