@@ -4,6 +4,8 @@ import ast
 import re
 from typing import Any, Dict, Optional
 
+from .llm_fix import try_llama_cpp_fix, try_ollama_fix
+
 
 FIXABLE_ERROR_TYPES = {
     "SyntaxError",
@@ -49,10 +51,12 @@ def _fix_missing_quote(line: str) -> Optional[str]:
         if line.rstrip().endswith(")"):
             return f"{line[:-1]}'" + ")"
         return f"{line}'"
+
     if double_quotes % 2 == 1 and single_quotes % 2 == 0:
         if line.rstrip().endswith(")"):
             return f'{line[:-1]}"' + ")"
         return f'{line}"'
+
     return None
 
 
@@ -131,7 +135,7 @@ def deterministic_fix(code: str, execution: Dict[str, Any]) -> Dict[str, Any]:
         if fixed_code.strip() == original_code.strip():
             continue
 
-        # Use AST validation for syntax-safe deterministic fixes.
+        # AST validation keeps deterministic changes syntax-safe.
         if _has_valid_ast(fixed_code):
             return {
                 "fix_available": True,
@@ -148,13 +152,65 @@ def deterministic_fix(code: str, execution: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def ai_fix_with_local_model(code: str, execution: Dict[str, Any]) -> Dict[str, Any]:
+    """Deterministic first, then optional local models (Ollama -> llama-cpp)."""
+    original_code = "" if code is None else str(code)
+
+    deterministic = deterministic_fix(original_code, execution)
+    if deterministic["fix_available"]:
+        return {
+            "fix_available": True,
+            "fixed_code": deterministic["fixed_code"],
+            "correct_line": deterministic["correct_line"],
+            "reason": deterministic["reason"],
+            "changed_lines": [],
+            "source": "deterministic",
+        }
+
+    error_text = str(execution.get("traceback") or execution.get("error_message") or "")
+
+    ollama_result = try_ollama_fix(original_code, error_text)
+    if ollama_result["ok"] and ollama_result["fixed_code"].strip() != original_code.strip():
+        return {
+            "fix_available": True,
+            "fixed_code": ollama_result["fixed_code"],
+            "correct_line": None,
+            "reason": ollama_result["reason"],
+            "changed_lines": ollama_result["changed_lines"],
+            "source": "ollama",
+        }
+
+    llama_cpp_result = try_llama_cpp_fix(original_code, error_text)
+    if llama_cpp_result["ok"] and llama_cpp_result["fixed_code"].strip() != original_code.strip():
+        return {
+            "fix_available": True,
+            "fixed_code": llama_cpp_result["fixed_code"],
+            "correct_line": None,
+            "reason": llama_cpp_result["reason"],
+            "changed_lines": llama_cpp_result["changed_lines"],
+            "source": "llama_cpp",
+        }
+
+    return {
+        "fix_available": False,
+        "fixed_code": original_code,
+        "correct_line": None,
+        "reason": (
+            "No deterministic fix available. "
+            "Local AI model unavailable or did not produce a valid correction."
+        ),
+        "changed_lines": [],
+        "source": "none",
+    }
+
+
 def generate_fixed_code(code: str, execution: Dict[str, Any]) -> Dict[str, Any]:
-    """Compatibility wrapper used by later AI workflow."""
-    result = deterministic_fix(code, execution)
+    """Compatibility wrapper for older callers."""
+    result = ai_fix_with_local_model(code, execution)
     return {
         "success": result["fix_available"],
         "fixed_code": result["fixed_code"],
-        "source": "deterministic" if result["fix_available"] else "none",
+        "source": result["source"],
         "error": None if result["fix_available"] else result["reason"],
         "ollama_error": None,
     }

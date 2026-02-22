@@ -5,6 +5,7 @@ import os
 
 from flask import Flask, jsonify, render_template, request
 
+from analyzer.ai_fixer import ai_fix_with_local_model
 from analyzer.error_explainer import explain_error
 from analyzer.executor import execute_code
 
@@ -61,7 +62,82 @@ def create_app() -> Flask:
     @app.post("/ai_fix")
     @app.post("/ai-fix")
     def ai_fix():
-        return jsonify({"fix_available": False, "message": "AI fix endpoint will be enabled in a follow-up commit."}), 200
+        try:
+            payload = request.get_json(silent=True) or {}
+            code = str(payload.get("code", ""))
+
+            if not code.strip():
+                return jsonify(
+                    {
+                        "execution": {
+                            "success": False,
+                            "error_type": "InputError",
+                            "error_message": "No code provided.",
+                            "error_line": None,
+                            "traceback": "",
+                        },
+                        "explanation": {
+                            "error_type": "InputError",
+                            "error_message": "No code provided.",
+                            "explanation": "Please write some code before running AI Auto Fix.",
+                            "suggestion": "Type Python code in the editor and try again.",
+                            "error_line": None,
+                            "fix_available": False,
+                        },
+                        "autofix": {
+                            "fix_available": False,
+                            "fixed_code": code,
+                            "reason": "No code provided.",
+                            "changed_lines": [],
+                            "source": "none",
+                        },
+                    }
+                ), 400
+
+            execution = execute_code(code)
+            explanation = None
+            autofix = {
+                "fix_available": False,
+                "fixed_code": code,
+                "reason": "Code already runs successfully.",
+                "changed_lines": [],
+                "source": "none",
+            }
+
+            if not execution.get("success"):
+                explanation = explain_error(code, execution)
+                autofix = ai_fix_with_local_model(code, execution)
+
+            return jsonify(
+                {
+                    "execution": execution,
+                    "explanation": explanation,
+                    "autofix": autofix,
+                }
+            ), 200
+        except Exception as exc:  # pragma: no cover - defensive fallback
+            app.logger.exception("Unexpected /ai_fix error")
+            execution = {
+                "success": False,
+                "error_type": "ExecutionError",
+                "error_message": str(exc),
+                "error_line": None,
+                "traceback": str(exc),
+            }
+            explanation = explain_error("", execution)
+            return jsonify(
+                {
+                    "execution": execution,
+                    "explanation": explanation,
+                    "autofix": {
+                        "fix_available": False,
+                        "fixed_code": "",
+                        "reason": str(exc),
+                        "changed_lines": [],
+                        "source": "none",
+                    },
+                }
+            ), 500
 
     @app.errorhandler(404)
     def not_found(_error):
