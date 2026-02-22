@@ -8,7 +8,7 @@ import tempfile
 from typing import Any, Dict, Optional
 
 MAX_CODE_CHARS = 100_000
-DEFAULT_TIMEOUT_SECONDS = 5
+DEFAULT_TIMEOUT_SECONDS = 3
 
 
 def _parse_error_type_and_message(stderr_text: str) -> tuple[str, str]:
