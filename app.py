@@ -35,7 +35,11 @@ def create_app() -> Flask:
             "return_code": None,
             "timed_out": False,
         }
-        explanation = None
+        explanation = {
+            "explanation": "",
+            "concept": "",
+            "fix_available": False,
+        }
 
         try:
             payload = request.get_json(silent=True) or {}
@@ -44,19 +48,20 @@ def create_app() -> Flask:
             if not code.strip():
                 execution["error_type"] = "InputError"
                 execution["error_message"] = "No code provided."
-                explanation = explain_error(code, execution)
+                explanation = explain_error(code, execution["error_message"], execution["error_line"])
                 return jsonify({"execution": execution, "explanation": explanation}), 400
 
             execution = execute_code(code)
             if not execution.get("success"):
-                explanation = explain_error(code, execution)
+                error_text = execution.get("traceback") or execution.get("error_message") or ""
+                explanation = explain_error(code, str(error_text), execution.get("error_line"))
 
             return jsonify({"execution": execution, "explanation": explanation}), 200
         except Exception as exc:  # pragma: no cover - defensive fallback
             app.logger.exception("Unexpected /run error")
             execution["error_message"] = str(exc)
             execution["traceback"] = str(exc)
-            explanation = explain_error("", execution)
+            explanation = explain_error("", str(exc), execution.get("error_line"))
             return jsonify({"execution": execution, "explanation": explanation}), 500
 
     @app.post("/ai_fix")
@@ -77,11 +82,8 @@ def create_app() -> Flask:
                             "traceback": "",
                         },
                         "explanation": {
-                            "error_type": "InputError",
-                            "error_message": "No code provided.",
                             "explanation": "Please write some code before running AI Auto Fix.",
-                            "suggestion": "Type Python code in the editor and try again.",
-                            "error_line": None,
+                            "concept": "Type Python code in the editor and try again.",
                             "fix_available": False,
                         },
                         "autofix": {
@@ -105,7 +107,8 @@ def create_app() -> Flask:
             }
 
             if not execution.get("success"):
-                explanation = explain_error(code, execution)
+                error_text = execution.get("traceback") or execution.get("error_message") or ""
+                explanation = explain_error(code, str(error_text), execution.get("error_line"))
                 autofix = ai_fix_with_local_model(code, execution)
 
             return jsonify(
@@ -124,7 +127,7 @@ def create_app() -> Flask:
                 "error_line": None,
                 "traceback": str(exc),
             }
-            explanation = explain_error("", execution)
+            explanation = explain_error("", str(exc), execution.get("error_line"))
             return jsonify(
                 {
                     "execution": execution,
