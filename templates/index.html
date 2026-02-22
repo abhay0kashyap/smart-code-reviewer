@@ -103,6 +103,7 @@ print(hello)
 
 <button class="run-btn" onclick="runCode()">Run Code</button>
 <button class="clear-btn" onclick="clearCode()">Clear</button>
+<button class="fix-btn" onclick="fixAllErrors()">AI Fix All Errors</button>
 
 <div id="result"></div>
 
@@ -280,11 +281,51 @@ async function runCode() {
 }
 
 
+async function fixAllErrors() {
+
+    const code = document.getElementById("code").value;
+
+    if (!code.trim()) {
+        alert("Please write code first.");
+        return;
+    }
+
+    const response = await fetch("/ai-fix", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ code: code })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        alert(data.error || "AI fixer failed.");
+        return;
+    }
+
+    if (data.fix_applied) {
+        document.getElementById("code").value = data.fixed_code;
+        await runCode();
+        return;
+    }
+
+    let msg = data.message || "No automatic fix found for this error yet.";
+    if (data.ai_fixer_warning) {
+        msg += "\n" + data.ai_fixer_warning;
+    }
+    alert(msg);
+}
+
+
 
 // Apply Fix Button
 function applyFix() {
 
-    const fixed = document.getElementById("fixed_code").innerText;
+    const fixedNode = document.getElementById("fixed_code");
+    if (!fixedNode) return;
+    const fixed = fixedNode.innerText;
 
     document.getElementById("code").value = fixed;
 
