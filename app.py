@@ -68,27 +68,36 @@ def create_app() -> Flask:
     @app.post("/ai-fix")
     def ai_fix():
         try:
-            payload = request.get_json(silent=True) or {}
+            payload = request.get_json(silent=True)
+            if payload is None or not isinstance(payload, dict):
+                return jsonify({"fixed_code": "", "fix_available": False, "message": "Invalid JSON body."}), 400
+
             code = str(payload.get("code", ""))
             error = str(payload.get("error", ""))
 
             if not code.strip():
-                return jsonify({"fixed_code": code, "fix_available": False}), 400
+                return jsonify({"fixed_code": code, "fix_available": False, "message": "No code provided."}), 400
 
             # If caller did not send error context, derive it from a run.
             if not error.strip():
                 execution = execute_code(code)
                 if execution.get("success"):
-                    return jsonify({"fixed_code": code, "fix_available": False}), 200
+                    return jsonify({"fixed_code": code, "fix_available": False, "message": "Code already runs."}), 200
                 error = str(execution.get("traceback") or execution.get("error_message") or "")
 
             fixed_code = ai_fix_code(code, error)
             fix_available = bool(fixed_code and fixed_code.strip() and fixed_code.strip() != code.strip())
 
-            return jsonify({"fixed_code": fixed_code or code, "fix_available": fix_available}), 200
+            return jsonify(
+                {
+                    "fixed_code": fixed_code or code,
+                    "fix_available": fix_available,
+                    "message": "Fix generated." if fix_available else "No usable fix generated.",
+                }
+            ), 200
         except Exception as exc:  # pragma: no cover - defensive fallback
             app.logger.exception("Unexpected /ai_fix error")
-            return jsonify({"fixed_code": "", "fix_available": False}), 200
+            return jsonify({"fixed_code": "", "fix_available": False, "message": str(exc)}), 200
 
     @app.errorhandler(404)
     def not_found(_error):

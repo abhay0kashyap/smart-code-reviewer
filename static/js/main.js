@@ -33,21 +33,34 @@ applyFixBtn.addEventListener("click", applyFixedCode);
 clearBtn.addEventListener("click", clearAll);
 
 async function postJson(url, body) {
-    const response = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-    });
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 120000);
+
+    let response;
+    try {
+        response = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+            signal: controller.signal,
+        });
+    } catch (error) {
+        clearTimeout(timer);
+        throw new Error(error?.name === "AbortError" ? "Request timed out." : "Network request failed.");
+    }
 
     let payload;
     try {
         payload = await response.json();
     } catch {
-        payload = {};
+        clearTimeout(timer);
+        throw new Error("Server returned invalid JSON.");
     }
 
+    clearTimeout(timer);
+
     if (!response.ok) {
-        throw new Error(payload.error || `Request failed (${response.status})`);
+        throw new Error(payload.error || payload.message || `Request failed (${response.status})`);
     }
 
     return payload;
@@ -58,6 +71,9 @@ function setLoading(loading, statusText = "Ready") {
     runBtn.disabled = loading;
     aiFixBtn.disabled = loading;
     clearBtn.disabled = loading;
+    if (loading) {
+        applyFixBtn.disabled = true;
+    }
     statusBadge.textContent = loading ? "Processing..." : statusText;
 }
 
@@ -83,7 +99,9 @@ function renderRunResult(payload, sourceCode) {
     errorLine.textContent = execution.error_line ?? "Unknown";
     tracebackPanel.textContent = execution.traceback || execution.stderr || "No traceback.";
     latestErrorText = execution.traceback || execution.error || execution.error_message || "";
-    explanationPanel.textContent = explanation?.explanation || "No explanation available.";
+    const base = explanation?.explanation || "No explanation available.";
+    const concept = explanation?.concept ? ` Concept: ${explanation.concept}` : "";
+    explanationPanel.textContent = `${base}${concept}`;
 
     renderHighlightedLine(sourceCode, execution.error_line);
 }
@@ -111,6 +129,13 @@ function renderHighlightedLine(code, lineNumber) {
 
 function renderFixedPreview(autofix) {
     const fix = autofix || {};
+    if (typeof fix.fix_available !== "boolean" || typeof fix.fixed_code !== "string") {
+        latestFixedCode = "";
+        fixedCodePreview.value = "Invalid fix response from backend.";
+        applyFixBtn.disabled = true;
+        return;
+    }
+
     if (fix.fix_available && fix.fixed_code && fix.fixed_code.trim()) {
         latestFixedCode = fix.fixed_code;
         fixedCodePreview.value = fix.fixed_code;
@@ -169,7 +194,7 @@ async function aiFixCode() {
         if (fixPayload.fix_available) {
             statusBadge.textContent = "Fixed code generated";
         } else {
-            statusBadge.textContent = "No auto fix available";
+            statusBadge.textContent = fixPayload.message || "No auto fix available";
         }
     } catch (err) {
         fixedCodePreview.value = `Auto-fix failed: ${String(err.message || err)}`;
