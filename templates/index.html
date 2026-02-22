@@ -1,349 +1,72 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Beginner Coding Platform</title>
-
-    <style>
-
-        body {
-            font-family: Arial, sans-serif;
-            margin: 40px;
-            background-color: #f4f6f8;
-        }
-
-        h1 {
-            margin-bottom: 10px;
-        }
-
-        textarea {
-            width: 100%;
-            height: 260px;
-            padding: 12px;
-            font-family: monospace;
-            font-size: 15px;
-            border-radius: 6px;
-            border: 1px solid #ccc;
-            resize: vertical;
-        }
-
-        button {
-            padding: 10px 20px;
-            margin-top: 10px;
-            margin-right: 10px;
-            font-size: 15px;
-            border-radius: 6px;
-            border: none;
-            cursor: pointer;
-        }
-
-        .run-btn {
-            background-color: #007bff;
-            color: white;
-        }
-
-        .clear-btn {
-            background-color: #6c757d;
-            color: white;
-        }
-
-        .fix-btn {
-            background-color: #28a745;
-            color: white;
-        }
-
-        .card {
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px solid #ddd;
-            margin-top: 15px;
-        }
-
-        .success-title {
-            color: green;
-            font-weight: bold;
-        }
-
-        .error-title {
-            color: red;
-            font-weight: bold;
-        }
-
-        pre {
-            background: black;
-            color: #00ff00;
-            padding: 12px;
-            border-radius: 6px;
-            overflow-x: auto;
-        }
-
-        .error-line {
-            color: red;
-            font-weight: bold;
-        }
-
-    </style>
-
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Smart Code Reviewer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
 </head>
-
 <body>
-
-<h1>🚀 Beginner Coding Platform with Smart Error Guide</h1>
-
-<textarea id="code" placeholder="Example:
-
-print('hello world')
-
-Try error:
-print(hello)
-
-"></textarea>
-
-<br>
-
-<button class="run-btn" onclick="runCode()">Run Code</button>
-<button class="clear-btn" onclick="clearCode()">Clear</button>
-<button class="fix-btn" onclick="fixAllErrors()">AI Fix All Errors</button>
-
-<div id="result"></div>
-
-<script>
-
-
-function escapeHtml(text) {
-
-    if (!text) return "";
-
-    return text
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;");
-}
-
-
-
-async function runCode() {
-
-    const code = document.getElementById("code").value;
-
-    if (!code.trim()) {
-        alert("Please write code first.");
-        return;
-    }
-
-    const response = await fetch("/run", {
-
-        method: "POST",
-
-        headers: {
-            "Content-Type": "application/json"
-        },
-
-        body: JSON.stringify({ code: code })
-
-    });
-
-    const data = await response.json();
-
-    let output = "";
-
-
-    // =========================
-    // SUCCESS CASE
-    // =========================
-
-    if (data.execution.success) {
-
-        output += `
-        <div class="card">
-
-            <div class="success-title">
-                ✅ Program executed successfully
+    <div class="app-shell">
+        <header class="topbar">
+            <div class="brand">
+                <h1>Smart Code Reviewer</h1>
+                <p>Beginner-friendly Python runner with local AI auto-fix</p>
             </div>
-
-            <pre>${escapeHtml(data.execution.output)}</pre>
-
-        </div>
-        `;
-    }
-
-
-    // =========================
-    // ERROR CASE
-    // =========================
-
-    if (!data.execution.success) {
-
-        const lines = code.split("\n");
-
-        output += `
-        <div class="card error-title">
-            Error in line ${data.execution.error_line}
-        </div>
-        `;
-
-
-        // Show code with error highlighted
-        output += `<div class="card"><pre>`;
-
-        lines.forEach((line, index) => {
-
-            if (index + 1 === data.execution.error_line) {
-
-                output += `<span class="error-line">${index+1}: ${escapeHtml(line)}</span>\n`;
-                output += `<span class="error-line">   ^ Error here</span>\n`;
-
-            } else {
-
-                output += `${index+1}: ${escapeHtml(line)}\n`;
-
-            }
-
-        });
-
-        output += `</pre></div>`;
-
-
-        // Error Type and Message
-        output += `
-        <div class="card">
-
-            <strong>Error Type:</strong><br>
-            ${escapeHtml(data.execution.error_type)}
-
-            <br><br>
-
-            <strong>Error Message:</strong><br>
-            ${escapeHtml(data.execution.error_message)}
-
-        </div>
-        `;
-
-
-        // Explanation
-        if (data.explanation) {
-
-            output += `
-            <div class="card">
-
-                <strong>Explanation:</strong><br>
-                ${escapeHtml(data.explanation.explanation)}
-
+            <div class="status-wrap">
+                <span id="statusBadge" class="status-badge idle">Ready</span>
+                <div id="loadingSpinner" class="spinner hidden" aria-hidden="true"></div>
             </div>
-            `;
+        </header>
 
-        }
+        <main class="workspace">
+            <section class="editor-pane">
+                <div class="pane-header">
+                    <h2>Editor</h2>
+                    <div class="actions">
+                        <button id="runBtn" class="btn btn-primary" type="button">Run Code</button>
+                        <button id="fixBtn" class="btn btn-accent" type="button">AI Auto Fix</button>
+                        <button id="clearBtn" class="btn btn-muted" type="button">Clear</button>
+                    </div>
+                </div>
+                <textarea id="codeInput" spellcheck="false" aria-label="Python code editor"></textarea>
+                <div class="editor-footer">
+                    <span id="charCount">0 chars</span>
+                </div>
+            </section>
 
+            <section id="resultPane" class="result-pane">
+                <article class="panel">
+                    <div class="panel-title">Program Output</div>
+                    <pre id="outputText" class="panel-code"></pre>
+                </article>
 
-        // Concept explanation
-        if (data.explanation && data.explanation.concept) {
+                <article class="panel">
+                    <div class="panel-title">Error Details</div>
+                    <div id="errorMeta" class="meta-grid"></div>
+                    <pre id="tracebackText" class="panel-code danger"></pre>
+                </article>
 
-            output += `
-            <div class="card">
+                <article class="panel">
+                    <div class="panel-title">Highlighted Error Line</div>
+                    <pre id="codePreview" class="panel-code code-preview"></pre>
+                </article>
 
-                <strong>Concept:</strong><br>
-                ${escapeHtml(data.explanation.concept)}
+                <article class="panel">
+                    <div class="panel-title">AI Explanation</div>
+                    <p id="explanationText" class="plain-text"></p>
+                    <p id="suggestionText" class="plain-text suggestion"></p>
+                </article>
 
-            </div>
-            `;
+                <article class="panel">
+                    <div class="panel-title">Fixed Code Preview</div>
+                    <pre id="fixedCodePreview" class="panel-code"></pre>
+                    <button id="applyFixBtn" class="btn btn-primary hidden" type="button">Apply Fixed Code</button>
+                </article>
+            </section>
+        </main>
+    </div>
 
-        }
-
-
-        // Suggested Fix
-        if (data.explanation && data.explanation.fix_available) {
-
-            output += `
-            <div class="card">
-
-                <strong>Suggested Fix (line):</strong>
-
-                <pre>${escapeHtml(data.explanation.correct_line)}</pre>
-
-                <strong>Corrected Full Program:</strong>
-
-                <pre id="fixed_code">${escapeHtml(data.explanation.fixed_full_code)}</pre>
-
-                <button class="fix-btn" onclick="applyFix()">
-                    Apply Fix
-                </button>
-
-            </div>
-            `;
-
-        }
-
-    }
-
-
-    document.getElementById("result").innerHTML = output;
-
-}
-
-
-async function fixAllErrors() {
-
-    const code = document.getElementById("code").value;
-
-    if (!code.trim()) {
-        alert("Please write code first.");
-        return;
-    }
-
-    const response = await fetch("/ai-fix", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ code: code })
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-        alert(data.error || "AI fixer failed.");
-        return;
-    }
-
-    if (data.fix_applied) {
-        document.getElementById("code").value = data.fixed_code;
-        await runCode();
-        return;
-    }
-
-    let msg = data.message || "No automatic fix found for this error yet.";
-    if (data.ai_fixer_warning) {
-        msg += "\n" + data.ai_fixer_warning;
-    }
-    alert(msg);
-}
-
-
-
-// Apply Fix Button
-function applyFix() {
-
-    const fixedNode = document.getElementById("fixed_code");
-    if (!fixedNode) return;
-    const fixed = fixedNode.innerText;
-
-    document.getElementById("code").value = fixed;
-
-}
-
-
-
-// Clear Button
-function clearCode() {
-
-    document.getElementById("code").value = "";
-
-    document.getElementById("result").innerHTML = "";
-
-}
-
-
-</script>
-
+    <script src="{{ url_for('static', filename='script.js') }}" defer></script>
 </body>
 </html>

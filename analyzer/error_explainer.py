@@ -1,135 +1,111 @@
-# analyzer/error_explainer.py
+from __future__ import annotations
 
-import ast
 import re
+from typing import Dict, Optional
 
 
-def explain_error(error_type, error_message, code):
-
-    explanation = ""
-    concept = ""
-    fix_available = False
-    correct_line = None
-    fixed_full_code = code
-    error_line = None
-
-    lines = code.splitlines()
-
-    try:
-
-        # Use Python AST to get exact error location
-        ast.parse(code)
-
-    except SyntaxError as e:
-
-        error_line = e.lineno
-        if not error_line or error_line < 1 or error_line > len(lines):
-            original_line = ""
-        else:
-            original_line = lines[error_line - 1]
-
-        explanation = e.msg
-
-        concept = "Python syntax error means structure of code is wrong."
-
-        new_line = original_line
+def _get_default_explanation(error_type: str) -> str:
+    explanations = {
+        "SyntaxError": "Python could not understand the way this line is written.",
+        "IndentationError": "The spacing at the start of a line is inconsistent.",
+        "TabError": "The code mixes tabs and spaces in indentation.",
+        "NameError": "A variable or function name was used before being defined.",
+        "TypeError": "Two values were used together in an incompatible way.",
+        "ValueError": "A value has the right type but an invalid content.",
+        "IndexError": "You tried to access a list position that does not exist.",
+        "KeyError": "You asked a dictionary for a key that is not present.",
+        "AttributeError": "You tried to use a method or property that does not exist on this object.",
+        "ZeroDivisionError": "Division by zero is not allowed.",
+        "ImportError": "Python could not import the requested module or name.",
+        "ModuleNotFoundError": "A module is missing in the current environment.",
+        "TimeoutError": "The program took too long to finish.",
+    }
+    return explanations.get(error_type, "Python raised an error while executing the program.")
 
 
-        # Fix 1: ; instead of :
-        if original_line.strip().endswith(";"):
+def _get_default_suggestion(error_type: str, error_message: str, error_line: Optional[int]) -> str:
+    line_note = f" on line {error_line}" if error_line else ""
 
-            new_line = original_line.rstrip(";") + ":"
+    if error_type == "SyntaxError":
+        if "expected ':'" in error_message:
+            return f"Add a ':' at the end of the statement{line_note}."
+        if "never closed" in error_message:
+            return f"Close the missing quote, bracket, or parenthesis{line_note}."
+        return f"Check punctuation and structure carefully{line_note}."
 
-            explanation = "You used ';' but Python requires ':'"
+    if error_type in {"IndentationError", "TabError"}:
+        return "Use only spaces for indentation (usually 4 spaces per block)."
 
-            concept = "Use ':' after if, for, while, def, else"
-
-            fix_available = True
-
-
-        # Fix 2: missing colon
-        elif original_line.strip().startswith(("if", "for", "while", "def", "else", "elif")):
-
-            if not original_line.strip().endswith(":"):
-
-                new_line = original_line + ":"
-
-                explanation = "Missing ':' at end of statement"
-
-                concept = "Python blocks must end with ':'"
-
-                fix_available = True
-
-
-        # Apply fix
-        if fix_available:
-
-            correct_line = new_line
-
-            new_lines = lines.copy()
-
-            new_lines[error_line - 1] = new_line
-
-            fixed_full_code = "\n".join(new_lines)
-
-
-    except Exception:
-
-        pass
-
-
-    # Handle NameError separately
     if error_type == "NameError":
+        undefined = re.search(r"name '(.+?)' is not defined", error_message)
+        if undefined:
+            return f"Define '{undefined.group(1)}' first, or wrap it in quotes if it is text."
+        return "Define the variable before using it."
 
-        match = re.search(r"name '(.+)' is not defined", error_message)
+    if error_type == "TypeError":
+        return "Convert values to compatible types (for example, int/float/str) before combining them."
 
-        if match:
+    if error_type == "ValueError":
+        return "Validate and convert input values before using them."
 
-            name = match.group(1)
+    if error_type == "IndexError":
+        return "Check list length before indexing, or use a valid index."
 
-            for i, line in enumerate(lines):
+    if error_type == "KeyError":
+        return "Use dict.get(key) or verify that the key exists before reading it."
 
-                if name in line:
+    if error_type == "AttributeError":
+        return "Check the object type and available attributes with dir(object)."
 
-                    error_line = i + 1
+    if error_type == "ZeroDivisionError":
+        return "Ensure the denominator is not zero before division."
 
-                    new_line = line.replace(name, f'"{name}"')
+    if error_type in {"ImportError", "ModuleNotFoundError"}:
+        return "Install the missing package and verify the module name."
 
-                    correct_line = new_line
+    if error_type == "TimeoutError":
+        return "Reduce loops/workload or optimize the logic to finish faster."
 
-                    new_lines = lines.copy()
+    return "Read the traceback and fix the first failing line first."
 
-                    new_lines[i] = new_line
 
-                    fixed_full_code = "\n".join(new_lines)
+def explain_error(
+    error_type: Optional[str],
+    error_message: Optional[str],
+    error_line: Optional[int] = None,
+    traceback_text: Optional[str] = None,
+) -> Dict[str, object]:
+    resolved_error_type = (error_type or "ExecutionError").strip() or "ExecutionError"
+    resolved_error_message = (error_message or "Unknown error").strip() or "Unknown error"
 
-                    explanation = f"{name} is treated as variable. Use quotes for string."
+    if error_line is None and traceback_text:
+        line_matches = re.findall(r"line\s+(\d+)", traceback_text)
+        if line_matches:
+            error_line = int(line_matches[-1])
 
-                    concept = "Strings must be inside quotes"
+    explanation = _get_default_explanation(resolved_error_type)
+    suggestion = _get_default_suggestion(resolved_error_type, resolved_error_message, error_line)
 
-                    fix_available = True
-
-                    break
-
-    if not explanation and error_message:
-        explanation = error_message.splitlines()[-1]
-
-    if not concept:
-        concept = "Review the traceback and fix the first failing line."
-
+    fix_available = resolved_error_type in {
+        "SyntaxError",
+        "IndentationError",
+        "TabError",
+        "NameError",
+        "TypeError",
+        "ValueError",
+        "IndexError",
+        "KeyError",
+        "AttributeError",
+        "ZeroDivisionError",
+        "ImportError",
+        "ModuleNotFoundError",
+    }
 
     return {
-
         "error_line": error_line,
-
+        "error_type": resolved_error_type,
+        "error_message": resolved_error_message,
         "explanation": explanation,
-
-        "concept": concept,
-
+        "suggestion": suggestion,
         "fix_available": fix_available,
-
-        "correct_line": correct_line,
-
-        "fixed_full_code": fixed_full_code
-
     }
