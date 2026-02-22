@@ -29,7 +29,7 @@ if (!codeEditor.value.trim()) {
 
 runBtn.addEventListener("click", runCode);
 aiFixBtn.addEventListener("click", aiFixCode);
-applyFixBtn.addEventListener("click", applyFixCode);
+applyFixBtn.addEventListener("click", applyFixedCode);
 clearBtn.addEventListener("click", clearAll);
 
 async function postJson(url, body) {
@@ -113,13 +113,13 @@ function renderFixedPreview(autofix) {
     const fix = autofix || {};
     if (fix.fix_available && fix.fixed_code && fix.fixed_code.trim()) {
         latestFixedCode = fix.fixed_code;
-        fixedCodePreview.textContent = fix.fixed_code;
+        fixedCodePreview.value = fix.fixed_code;
         applyFixBtn.disabled = false;
         return;
     }
 
     latestFixedCode = "";
-    fixedCodePreview.textContent = "No fixed code preview yet.";
+    fixedCodePreview.value = "No fixed code preview yet.";
     applyFixBtn.disabled = true;
 }
 
@@ -172,7 +172,7 @@ async function aiFixCode() {
             statusBadge.textContent = "No auto fix available";
         }
     } catch (err) {
-        fixedCodePreview.textContent = `Auto-fix failed: ${String(err.message || err)}`;
+        fixedCodePreview.value = `Auto-fix failed: ${String(err.message || err)}`;
         applyFixBtn.disabled = true;
         statusBadge.textContent = "Auto-fix request failed";
     } finally {
@@ -180,14 +180,12 @@ async function aiFixCode() {
     }
 }
 
-function applyFixCode() {
-    if (!latestFixedCode) {
-        return;
-    }
-
-    codeEditor.value = latestFixedCode;
-    fixedCodePreview.textContent = "Fixed code applied to editor.";
-    latestFixedCode = "";
+function applyFixedCode() {
+    const editor = document.getElementById("codeEditor");
+    const fixedCodePreview = document.getElementById("fixedCodePreview");
+    editor.value = fixedCodePreview.value;
+    latestFixedCode = editor.value;
+    fixedCodePreview.value = "Fixed code applied to editor.";
     applyFixBtn.disabled = true;
     statusBadge.textContent = "Fixed code applied. Run again.";
 }
@@ -201,7 +199,7 @@ function clearAll() {
     tracebackPanel.textContent = "No traceback.";
     highlightPanel.textContent = "No highlighted line.";
     explanationPanel.textContent = "No explanation yet.";
-    fixedCodePreview.textContent = "No fixed code preview yet.";
+    fixedCodePreview.value = "No fixed code preview yet.";
     latestFixedCode = "";
     applyFixBtn.disabled = true;
     statusBadge.textContent = "Cleared";
