@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import logging
 import os
 
 from flask import Flask, jsonify, render_template, request
 
-from analyzer.engine import auto_fix_workflow, run_code_workflow
+from analyzer.error_explainer import explain_error
+from analyzer.executor import execute_code
 
 
 API_PATHS = {"/run", "/ai_fix", "/ai-fix"}
@@ -12,6 +14,7 @@ API_PATHS = {"/run", "/ai_fix", "/ai-fix"}
 
 def create_app() -> Flask:
     app = Flask(__name__)
+    app.logger.setLevel(logging.INFO)
 
     @app.get("/")
     def index() -> str:
@@ -19,45 +22,46 @@ def create_app() -> Flask:
 
     @app.post("/run")
     def run_code():
+        execution = {
+            "success": False,
+            "stdout": "",
+            "stderr": "",
+            "output": "",
+            "error_type": "ExecutionError",
+            "error_message": None,
+            "error_line": None,
+            "traceback": "",
+            "return_code": None,
+            "timed_out": False,
+        }
+        explanation = None
+
         try:
             payload = request.get_json(silent=True) or {}
             code = str(payload.get("code", ""))
-            response, status_code = run_code_workflow(code)
-            return jsonify(response), status_code
+
+            if not code.strip():
+                execution["error_type"] = "InputError"
+                execution["error_message"] = "No code provided."
+                explanation = explain_error(code, execution)
+                return jsonify({"execution": execution, "explanation": explanation}), 400
+
+            execution = execute_code(code)
+            if not execution.get("success"):
+                explanation = explain_error(code, execution)
+
+            return jsonify({"execution": execution, "explanation": explanation}), 200
         except Exception as exc:  # pragma: no cover - defensive fallback
             app.logger.exception("Unexpected /run error")
-            return (
-                jsonify(
-                    {
-                        "ok": False,
-                        "error": "Internal server error while running code.",
-                        "details": str(exc),
-                    }
-                ),
-                500,
-            )
+            execution["error_message"] = str(exc)
+            execution["traceback"] = str(exc)
+            explanation = explain_error("", execution)
+            return jsonify({"execution": execution, "explanation": explanation}), 500
 
     @app.post("/ai_fix")
     @app.post("/ai-fix")
     def ai_fix():
-        try:
-            payload = request.get_json(silent=True) or {}
-            code = str(payload.get("code", ""))
-            model = str(payload.get("model", "llama3")).strip() or "llama3"
-            response, status_code = auto_fix_workflow(code=code, model=model, max_rounds=4)
-            return jsonify(response), status_code
-        except Exception as exc:  # pragma: no cover - defensive fallback
-            app.logger.exception("Unexpected /ai_fix error")
-            return (
-                jsonify(
-                    {
-                        "ok": False,
-                        "error": "Internal server error while fixing code.",
-                        "details": str(exc),
-                    }
-                ),
-                500,
-            )
+        return jsonify({"fix_available": False, "message": "AI fix endpoint will be enabled in a follow-up commit."}), 200
 
     @app.errorhandler(404)
     def not_found(_error):
