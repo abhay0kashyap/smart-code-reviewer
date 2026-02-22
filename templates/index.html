@@ -4,69 +4,68 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Smart Code Reviewer</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}" />
 </head>
 <body>
+    <div id="loader" class="loader hidden">Processing...</div>
+
     <div class="app-shell">
         <header class="topbar">
-            <div class="brand">
+            <div>
                 <h1>Smart Code Reviewer</h1>
-                <p>Beginner-friendly Python runner with local AI auto-fix</p>
+                <p>Beginner-friendly Python debugging with deterministic + optional local AI autofix.</p>
             </div>
-            <div class="status-wrap">
-                <span id="statusBadge" class="status-badge idle">Ready</span>
-                <div id="loadingSpinner" class="spinner hidden" aria-hidden="true"></div>
-            </div>
+            <span id="statusBadge" class="status">Ready</span>
         </header>
 
-        <main class="workspace">
-            <section class="editor-pane">
-                <div class="pane-header">
-                    <h2>Editor</h2>
+        <main class="layout">
+            <section class="editor-section">
+                <div class="section-head">
+                    <h2>Code Editor</h2>
                     <div class="actions">
-                        <button id="runBtn" class="btn btn-primary" type="button">Run Code</button>
-                        <button id="fixBtn" class="btn btn-accent" type="button">AI Auto Fix</button>
-                        <button id="clearBtn" class="btn btn-muted" type="button">Clear</button>
+                        <button id="runBtn" class="btn primary">Run Code</button>
+                        <button id="aiFixBtn" class="btn accent">AI Auto Fix</button>
+                        <button id="applyFixBtn" class="btn success" disabled>Apply Fixed Code</button>
+                        <button id="clearBtn" class="btn muted">Clear</button>
                     </div>
                 </div>
-                <textarea id="codeEditor" spellcheck="false" aria-label="Python code editor"></textarea>
-                <div class="editor-footer">
-                    <span id="charCount">0 chars</span>
-                </div>
+                <textarea id="codeEditor" spellcheck="false"></textarea>
             </section>
 
-            <section id="resultPane" class="result-pane">
+            <section class="panel-section">
                 <article class="panel">
-                    <div class="panel-title">Program Output</div>
-                    <pre id="outputText" class="panel-code"></pre>
+                    <h3>Program Output</h3>
+                    <pre id="outputPanel">Run code to see output.</pre>
                 </article>
 
                 <article class="panel">
-                    <div class="panel-title">Error Details</div>
-                    <div id="errorMeta" class="meta-grid"></div>
-                    <pre id="tracebackText" class="panel-code danger"></pre>
+                    <h3>Error Details</h3>
+                    <div class="meta-grid">
+                        <span>Error Type</span><span id="errorType">None</span>
+                        <span>Error Message</span><span id="errorMessage">None</span>
+                        <span>Error Line</span><span id="errorLine">None</span>
+                    </div>
+                    <pre id="tracebackPanel">No traceback.</pre>
                 </article>
 
                 <article class="panel">
-                    <div class="panel-title">Highlighted Error Line</div>
-                    <pre id="codePreview" class="panel-code code-preview"></pre>
+                    <h3>Highlighted Error Line</h3>
+                    <pre id="highlightPanel">No highlighted line.</pre>
                 </article>
 
                 <article class="panel">
-                    <div class="panel-title">AI Explanation</div>
-                    <p id="explanationText" class="plain-text"></p>
-                    <p id="suggestionText" class="plain-text suggestion"></p>
+                    <h3>Explanation</h3>
+                    <p id="explanationPanel">No explanation yet.</p>
                 </article>
 
                 <article class="panel">
-                    <div class="panel-title">Fixed Code Preview</div>
-                    <pre id="fixedCodePreview" class="panel-code"></pre>
-                    <button id="applyFixBtn" class="btn btn-primary hidden" type="button">Apply Fixed Code</button>
+                    <h3>Fixed Code Preview</h3>
+                    <pre id="fixedCodePreview">No fixed code preview yet.</pre>
                 </article>
             </section>
         </main>
     </div>
 
-    <script src="{{ url_for('static', filename='script.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
 </body>
 </html>
