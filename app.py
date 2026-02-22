@@ -5,7 +5,7 @@ import os
 
 from flask import Flask, jsonify, render_template, request
 
-from analyzer.ai_fixer import ai_fix_with_local_model
+from analyzer.ai_fixer import ai_fix_code
 from analyzer.error_explainer import explain_error
 from analyzer.executor import execute_code
 
@@ -70,77 +70,25 @@ def create_app() -> Flask:
         try:
             payload = request.get_json(silent=True) or {}
             code = str(payload.get("code", ""))
+            error = str(payload.get("error", ""))
 
             if not code.strip():
-                return jsonify(
-                    {
-                        "execution": {
-                            "success": False,
-                            "error_type": "InputError",
-                            "error_message": "No code provided.",
-                            "error_line": None,
-                            "traceback": "",
-                        },
-                        "explanation": {
-                            "explanation": "Please write some code before running AI Auto Fix.",
-                            "concept": "Type Python code in the editor and try again.",
-                            "fix_available": False,
-                        },
-                        "autofix": {
-                            "fix_available": False,
-                            "fixed_code": code,
-                            "reason": "No code provided.",
-                            "changed_lines": [],
-                            "source": "none",
-                        },
-                    }
-                ), 400
+                return jsonify({"fixed_code": code, "fix_available": False}), 400
 
-            execution = execute_code(code)
-            explanation = None
-            autofix = {
-                "fix_available": False,
-                "fixed_code": code,
-                "reason": "Code already runs successfully.",
-                "changed_lines": [],
-                "source": "none",
-            }
+            # If caller did not send error context, derive it from a run.
+            if not error.strip():
+                execution = execute_code(code)
+                if execution.get("success"):
+                    return jsonify({"fixed_code": code, "fix_available": False}), 200
+                error = str(execution.get("traceback") or execution.get("error_message") or "")
 
-            if not execution.get("success"):
-                error_text = execution.get("traceback") or execution.get("error_message") or ""
-                explanation = explain_error(code, str(error_text), execution.get("error_line"))
-                autofix = ai_fix_with_local_model(code, execution)
+            fixed_code = ai_fix_code(code, error)
+            fix_available = bool(fixed_code and fixed_code.strip() and fixed_code.strip() != code.strip())
 
-            return jsonify(
-                {
-                    "execution": execution,
-                    "explanation": explanation,
-                    "autofix": autofix,
-                }
-            ), 200
+            return jsonify({"fixed_code": fixed_code or code, "fix_available": fix_available}), 200
         except Exception as exc:  # pragma: no cover - defensive fallback
             app.logger.exception("Unexpected /ai_fix error")
-            execution = {
-                "success": False,
-                "error_type": "ExecutionError",
-                "error_message": str(exc),
-                "error_line": None,
-                "traceback": str(exc),
-            }
-            explanation = explain_error("", str(exc), execution.get("error_line"))
-            return jsonify(
-                {
-                    "execution": execution,
-                    "explanation": explanation,
-                    "autofix": {
-                        "fix_available": False,
-                        "fixed_code": "",
-                        "reason": str(exc),
-                        "changed_lines": [],
-                        "source": "none",
-                    },
-                }
-            ), 500
+            return jsonify({"fixed_code": "", "fix_available": False}), 200
 
     @app.errorhandler(404)
     def not_found(_error):
