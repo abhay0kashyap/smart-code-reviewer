@@ -17,6 +17,7 @@ const explanationPanel = document.getElementById("explanationPanel");
 const fixedCodePreview = document.getElementById("fixedCodePreview");
 
 let latestFixedCode = "";
+let latestErrorText = "";
 
 if (!codeEditor.value.trim()) {
     codeEditor.value = [
@@ -27,7 +28,7 @@ if (!codeEditor.value.trim()) {
 }
 
 runBtn.addEventListener("click", runCode);
-aiFixBtn.addEventListener("click", runAutoFix);
+aiFixBtn.addEventListener("click", aiFixCode);
 applyFixBtn.addEventListener("click", applyFixCode);
 clearBtn.addEventListener("click", clearAll);
 
@@ -65,6 +66,7 @@ function renderRunResult(payload, sourceCode) {
     const explanation = payload.explanation || null;
 
     if (execution.success) {
+        latestErrorText = "";
         outputPanel.textContent = execution.stdout || execution.output || "Program executed with no output.";
         errorType.textContent = "None";
         errorMessage.textContent = "None";
@@ -80,6 +82,7 @@ function renderRunResult(payload, sourceCode) {
     errorMessage.textContent = execution.error_message || "Unknown error";
     errorLine.textContent = execution.error_line ?? "Unknown";
     tracebackPanel.textContent = execution.traceback || execution.stderr || "No traceback.";
+    latestErrorText = execution.traceback || execution.error || execution.error_message || "";
     explanationPanel.textContent = explanation?.explanation || "No explanation available.";
 
     renderHighlightedLine(sourceCode, execution.error_line);
@@ -137,24 +140,33 @@ async function runCode() {
     }
 }
 
-async function runAutoFix() {
+async function aiFixCode() {
     const code = codeEditor.value;
     setLoading(true);
 
     try {
-        const runPayload = await postJson("/run", { code });
-        renderRunResult(runPayload, code);
+        let errorText = latestErrorText;
+        if (!errorText) {
+            const runPayload = await postJson("/run", { code });
+            renderRunResult(runPayload, code);
 
-        if (runPayload.execution?.success) {
-            renderFixedPreview({ fix_available: false });
-            statusBadge.textContent = "Code already valid";
-            return;
+            if (runPayload.execution?.success) {
+                renderFixedPreview({ fix_available: false });
+                statusBadge.textContent = "Code already valid";
+                return;
+            }
+
+            errorText =
+                runPayload.execution?.traceback ||
+                runPayload.execution?.error ||
+                runPayload.execution?.error_message ||
+                "";
         }
 
-        const fixPayload = await postJson("/ai_fix", { code });
-        renderFixedPreview(fixPayload.autofix);
+        const fixPayload = await postJson("/ai_fix", { code, error: errorText });
+        renderFixedPreview(fixPayload);
 
-        if (fixPayload.autofix?.fix_available) {
+        if (fixPayload.fix_available) {
             statusBadge.textContent = "Fixed code generated";
         } else {
             statusBadge.textContent = "No auto fix available";
