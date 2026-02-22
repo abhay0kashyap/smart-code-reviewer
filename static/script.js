@@ -1,4 +1,4 @@
-const codeInput = document.getElementById("codeInput");
+const codeEditor = document.getElementById("codeEditor");
 const runBtn = document.getElementById("runBtn");
 const fixBtn = document.getElementById("fixBtn");
 const clearBtn = document.getElementById("clearBtn");
@@ -25,22 +25,22 @@ const starterCode = [
     "print('Hello ' + name)",
 ].join("\n");
 
-if (!codeInput.value.trim()) {
-    codeInput.value = starterCode;
+if (!codeEditor.value.trim()) {
+    codeEditor.value = starterCode;
 }
 
 updateCharCount();
 setStatus("Ready", "idle");
 resetPanels();
 
-codeInput.addEventListener("input", updateCharCount);
+codeEditor.addEventListener("input", updateCharCount);
 runBtn.addEventListener("click", handleRun);
 fixBtn.addEventListener("click", handleAIFix);
 clearBtn.addEventListener("click", handleClear);
-applyFixBtn.addEventListener("click", applyFixedCode);
+applyFixBtn.addEventListener("click", applyFixCode);
 
 function updateCharCount() {
-    charCount.textContent = `${codeInput.value.length} chars`;
+    charCount.textContent = `${codeEditor.value.length} chars`;
 }
 
 function setStatus(text, mode) {
@@ -169,11 +169,13 @@ function renderExecution(execution, explanation, sourceCode) {
     }
 }
 
-function renderFixedCodePreview(code) {
+function renderFixedCodePreview(code, showApply = false) {
     if (code && code.trim()) {
         fixedCodePreview.textContent = code;
         latestFixedCode = code;
-        applyFixBtn.classList.remove("hidden");
+        if (showApply) {
+            applyFixBtn.classList.remove("hidden");
+        }
         return;
     }
 
@@ -182,17 +184,17 @@ function renderFixedCodePreview(code) {
     applyFixBtn.classList.add("hidden");
 }
 
-function applyFixedCode() {
-    if (!latestFixedCode) {
-        return;
-    }
-    codeInput.value = latestFixedCode;
+function applyFixCode() {
+    const fixedCode = document.getElementById("fixedCodePreview").innerText;
+    document.getElementById("codeEditor").value = fixedCode;
+    latestFixedCode = fixedCode;
     updateCharCount();
-    setStatus("Fixed code applied", "success");
+    renderFixedCodePreview("", false);
+    setStatus("Fixed code applied. Click Run Code.", "success");
 }
 
 async function handleRun() {
-    const code = codeInput.value;
+    const code = codeEditor.value;
     if (!code.trim()) {
         setStatus("Please enter code", "error");
         return;
@@ -203,7 +205,6 @@ async function handleRun() {
     try {
         const data = await postJson("/run", { code });
         renderExecution(data.execution, data.explanation, code);
-        renderFixedCodePreview("");
     } catch (error) {
         setStatus("Request failed", "error");
         outputText.textContent = "";
@@ -217,13 +218,13 @@ async function handleRun() {
 }
 
 async function handleAIFix() {
-    const code = codeInput.value;
+    const code = codeEditor.value;
     if (!code.trim()) {
         setStatus("Please enter code", "error");
         return;
     }
 
-    setBusy(true, "Generating fix...");
+    setBusy(true, "Generating AI fix...");
 
     try {
         const data = await postJson("/ai_fix", { code, model: "llama3" }, 120000);
@@ -232,16 +233,24 @@ async function handleAIFix() {
             suggestionText.textContent = data.ai_warning;
         }
 
-        renderExecution(data.fixed_execution, data.final_explanation, data.fixed_code || code);
-        renderFixedCodePreview(data.fixed_code || "");
+        // Show current error context first
+        if (data.original_execution) {
+            renderExecution(data.original_execution, data.final_explanation, code);
+        }
 
-        if (data.fix_applied) {
-            codeInput.value = data.fixed_code;
-            updateCharCount();
-            setStatus("AI fix applied", "success");
-        } else if (data.fixed_execution && data.fixed_execution.success) {
-            setStatus("Code already valid", "success");
+        if (data.fixed_code && data.fixed_code.trim()) {
+            const changed = data.fixed_code.trim() !== code.trim();
+            renderFixedCodePreview(data.fixed_code, changed);
+
+            if (changed) {
+                setStatus("AI fix ready. Click Apply Fixed Code.", "success");
+            } else if (data.fixed_execution && data.fixed_execution.success) {
+                setStatus("Code already valid", "success");
+            } else {
+                setStatus("No fix generated", "error");
+            }
         } else {
+            renderFixedCodePreview("", false);
             setStatus("No fix generated", "error");
         }
     } catch (error) {
@@ -255,7 +264,7 @@ async function handleAIFix() {
 }
 
 function handleClear() {
-    codeInput.value = "";
+    codeEditor.value = "";
     updateCharCount();
     resetPanels();
     setStatus("Cleared", "idle");

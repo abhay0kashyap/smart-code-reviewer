@@ -5,112 +5,70 @@ from typing import Any, Dict, Optional
 
 import requests
 
-OLLAMA_GENERATE_URL = "http://localhost:11434/api/generate"
-OLLAMA_TIMEOUT_SECONDS = 45
+OLLAMA_URL = "http://localhost:11434/api/generate"
+OLLAMA_TIMEOUT_SECONDS = 90
 
 
-def _looks_like_code_line(line: str) -> bool:
-    stripped = line.strip()
-    if not stripped:
-        return False
-
-    code_prefixes = (
-        "import ",
-        "from ",
-        "def ",
-        "class ",
-        "if ",
-        "elif ",
-        "else:",
-        "for ",
-        "while ",
-        "try:",
-        "except",
-        "with ",
-        "return ",
-        "print(",
-        "raise ",
-    )
-
-    return (
-        stripped.startswith(code_prefixes)
-        or "=" in stripped
-        or stripped.endswith(":")
-        or stripped.endswith(")")
-        or stripped in {"pass", "break", "continue"}
-    )
-
-
-def _extract_python_code(text: str) -> str:
+def _strip_markdown_fences(text: str) -> str:
     if not text:
         return ""
 
     cleaned = text.strip()
-    fenced_blocks = re.findall(r"```(?:python)?\s*(.*?)```", cleaned, flags=re.IGNORECASE | re.DOTALL)
-    if fenced_blocks:
-        cleaned = max(fenced_blocks, key=len).strip()
+    fenced = re.findall(r"```(?:python)?\s*(.*?)```", cleaned, flags=re.IGNORECASE | re.DOTALL)
+    if fenced:
+        cleaned = max(fenced, key=len).strip()
 
-    lines = cleaned.splitlines()
-    if not lines:
-        return ""
-
-    start_index = 0
-    for index, line in enumerate(lines):
-        if _looks_like_code_line(line):
-            start_index = index
-            break
-
-    code_candidate = "\n".join(lines[start_index:]).strip()
-    code_candidate = re.sub(r"^python\s*", "", code_candidate, flags=re.IGNORECASE)
-    return code_candidate.strip()
+    cleaned = re.sub(r"^python\s*", "", cleaned, flags=re.IGNORECASE).strip()
+    return cleaned
 
 
-def _request_ollama(prompt: str, model: str) -> Dict[str, Any]:
-    payload = {
-        "model": model,
-        "prompt": prompt,
-        "stream": False,
-        "options": {"temperature": 0.1},
-    }
+def ai_fix_with_ollama(code, error):
+    import requests
+    import json
 
-    try:
-        response = requests.post(
-            OLLAMA_GENERATE_URL,
-            json=payload,
-            timeout=OLLAMA_TIMEOUT_SECONDS,
-        )
-    except requests.RequestException as exc:
-        return {
-            "success": False,
-            "error": f"Could not connect to Ollama at {OLLAMA_GENERATE_URL}: {exc}",
-            "response_text": "",
-        }
+    prompt = f"""
+You are an expert Python debugger.
 
-    if response.status_code != 200:
-        return {
-            "success": False,
-            "error": f"Ollama returned HTTP {response.status_code}: {response.text[:300]}",
-            "response_text": "",
-        }
+Your job is to FIX the user's Python code.
 
-    try:
-        data = response.json()
-    except ValueError:
-        return {
-            "success": False,
-            "error": "Ollama returned non-JSON response.",
-            "response_text": response.text,
-        }
+IMPORTANT RULES:
 
-    response_text = str(data.get("response", "") or "")
-    if not response_text.strip():
-        return {
-            "success": False,
-            "error": "Ollama returned an empty response.",
-            "response_text": "",
-        }
+1. You MUST return ONLY corrected FULL Python code
+2. DO NOT explain anything
+3. DO NOT return original code if it has errors
+4. ALWAYS fix syntax, logic, indentation, and runtime errors
+5. The output code MUST run successfully in Python
+6. DO NOT include markdown
+7. DO NOT include ```python
+8. RETURN ONLY PURE PYTHON CODE
 
-    return {"success": True, "error": None, "response_text": response_text}
+USER CODE:
+{code}
+
+ERROR:
+{error}
+
+NOW RETURN THE FULL FIXED CODE:
+"""
+
+    response = requests.post(
+        OLLAMA_URL,
+        json={
+            "model": "llama3",
+            "prompt": prompt,
+            "stream": False,
+            "options": {
+                "temperature": 0,
+                "top_p": 1
+            }
+        },
+        timeout=OLLAMA_TIMEOUT_SECONDS,
+    )
+    response.raise_for_status()
+
+    result = response.json()["response"].strip()
+
+    return _strip_markdown_fences(result)
 
 
 def _error_line_from_execution(execution: Dict[str, Any]) -> Optional[int]:
@@ -151,6 +109,12 @@ def _rule_based_fix(code: str, execution: Dict[str, Any]) -> str:
 
         if stripped_target.startswith(("if ", "while ")) and " = " in stripped_target and "==" not in stripped_target:
             return _replace_line(code, error_line, target_line.replace(" = ", " == ", 1))
+
+        if "/)" in target_line:
+            return _replace_line(code, error_line, target_line.replace("/)", ")"))
+
+        if stripped_target.endswith("/"):
+            return _replace_line(code, error_line, target_line.rstrip("/"))
 
     if error_type in {"IndentationError", "TabError"}:
         return code.replace("\t", "    ")
@@ -206,64 +170,32 @@ def _rule_based_fix(code: str, execution: Dict[str, Any]) -> str:
     return code
 
 
-def _build_fix_prompt(code: str, execution: Dict[str, Any]) -> str:
-    error_type = execution.get("error_type") or "ExecutionError"
-    error_message = execution.get("error_message") or "Unknown error"
-    traceback_text = execution.get("traceback") or ""
-
-    return f"""
-You are a precise Python code repair engine.
-Return ONLY valid corrected Python code.
-Do not include explanations, markdown, or comments.
-
-Requirements:
-1. Preserve the user's intent.
-2. Fix syntax and runtime errors.
-3. Keep output behavior sensible for beginners.
-4. Return complete runnable code.
-
-Python code:
-{code}
-
-Error type:
-{error_type}
-
-Error message:
-{error_message}
-
-Traceback:
-{traceback_text}
-""".strip()
-
-
 def generate_fixed_code(
     code: str,
     execution: Dict[str, Any],
     model: str = "llama3",
     use_ollama: bool = True,
 ) -> Dict[str, Any]:
-    """Generate fixed code using Ollama first, then deterministic fallback."""
+    """Generate fixed code using strict Ollama prompt, then deterministic fallback."""
     original_code = "" if code is None else str(code)
+    error_text = str(execution.get("traceback") or execution.get("error_message") or "")
     ollama_error = None
 
     if use_ollama:
-        prompt = _build_fix_prompt(original_code, execution)
-        ollama_result = _request_ollama(prompt=prompt, model=model)
-
-        if ollama_result["success"]:
-            candidate = _extract_python_code(ollama_result["response_text"])
-            if candidate.strip() and candidate.strip() != original_code.strip():
+        try:
+            ai_fixed_code = ai_fix_with_ollama(original_code, error_text)
+            if ai_fixed_code and ai_fixed_code.strip() != original_code.strip():
                 return {
                     "success": True,
-                    "fixed_code": candidate,
+                    "fixed_code": ai_fixed_code,
                     "source": "ollama",
                     "model": model,
                     "error": None,
                     "ollama_error": None,
                 }
-            ollama_error = "Ollama returned code but no meaningful changes were produced."
-        else:
-            ollama_error = ollama_result["error"]
+            ollama_error = "Ollama returned unchanged code."
+        except Exception as exc:
+            ollama_error = str(exc)
 
     fallback_code = _rule_based_fix(original_code, execution)
     if fallback_code.strip() != original_code.strip():
