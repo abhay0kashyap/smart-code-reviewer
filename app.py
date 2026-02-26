@@ -78,6 +78,8 @@ def create_app() -> Flask:
             if not code.strip():
                 return jsonify({"fixed_code": code, "fix_available": False, "message": "No code provided."}), 400
 
+            print("Received code:", code)
+
             # If caller did not send error context, derive it from a run.
             if not error.strip():
                 execution = execute_code(code)
@@ -86,6 +88,7 @@ def create_app() -> Flask:
                 error = str(execution.get("traceback") or execution.get("error_message") or "")
 
             fixed_code = ai_fix_code(code, error)
+            print("AI returned:", fixed_code)
             fix_available = bool(fixed_code and fixed_code.strip() and fixed_code.strip() != code.strip())
 
             return jsonify(
@@ -97,7 +100,8 @@ def create_app() -> Flask:
             ), 200
         except Exception as exc:  # pragma: no cover - defensive fallback
             app.logger.exception("Unexpected /ai_fix error")
-            return jsonify({"fixed_code": "", "fix_available": False, "message": str(exc)}), 200
+            print("AI ERROR:", str(exc))
+            return jsonify({"fixed_code": "", "fix_available": False, "error": str(exc)}), 200
 
     @app.errorhandler(404)
     def not_found(_error):
