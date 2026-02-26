@@ -40,6 +40,21 @@ def _extract_response_text(response: Any) -> str:
     return "\n".join(fragments).strip()
 
 
+def _extract_error_line_from_text(error_text: str) -> Optional[int]:
+    if not error_text:
+        return None
+
+    local_file_matches = re.findall(r'File ".*?main\\.py", line (\d+)', error_text)
+    if local_file_matches:
+        return int(local_file_matches[-1])
+
+    generic_matches = re.findall(r"line\s+(\d+)", error_text)
+    if generic_matches:
+        return int(generic_matches[-1])
+
+    return None
+
+
 def _line_index(code: str, one_based_line: Optional[int]) -> int:
     lines = code.splitlines()
     if not lines:
@@ -47,6 +62,16 @@ def _line_index(code: str, one_based_line: Optional[int]) -> int:
     if one_based_line and 1 <= one_based_line <= len(lines):
         return one_based_line - 1
     return 0
+
+
+def _extract_name_error_identifier(error_blob: str) -> str:
+    match = re.search(r"name\s+'([A-Za-z_][A-Za-z0-9_]*)'\s+is\s+not\s+defined", error_blob)
+    return match.group(1) if match else ""
+
+
+def _extract_key_error_key(error_blob: str) -> str:
+    match = re.search(r"KeyError:\s*['\"]?([^'\"\n]+)['\"]?", error_blob)
+    return match.group(1) if match else ""
 
 
 def deterministic_fix(code: str, execution: Dict[str, Any]) -> Dict[str, Any]:
@@ -65,64 +90,106 @@ def deterministic_fix(code: str, execution: Dict[str, Any]) -> Dict[str, Any]:
         return result
 
     error_type = str(execution.get("error_type") or "")
-    error_message = str(execution.get("error_message") or execution.get("traceback") or "")
-    error_blob = f"{error_type} {error_message}".lower()
+    error_message = str(execution.get("error_message") or "")
+    traceback_text = str(execution.get("traceback") or "")
+    error_blob = f"{error_type}\n{error_message}\n{traceback_text}"
+    error_blob_lower = error_blob.lower()
 
-    line_idx = _line_index(code, execution.get("error_line"))
-    if line_idx < 0:
-        return result
-
-    target = lines[line_idx]
-    updated = target
+    changed = False
     reason = ""
 
-    # Common beginner typo: print("hi",/)
-    candidate = re.sub(r"print\(([^\n)]*?),/\)", r"print(\1)", updated)
-    if candidate != updated:
-        updated = candidate
-        reason = "Removed invalid '/)' punctuation in print call."
-
-    # Common typo: block opener ends with ';' instead of ':'
     block_pattern = r"^(\s*(?:if|elif|else|for|while|try|except|finally|with|def|class)\b.*?);(\s*)$"
-    candidate = re.sub(block_pattern, r"\1:\2", updated)
-    if candidate != updated:
-        updated = candidate
-        reason = "Replaced trailing semicolon with colon for Python block syntax."
+    for idx, line in enumerate(lines):
+        updated = line
+        updated = re.sub(r"print\(([^\n)]*?),/\)", r"print(\1)", updated)
+        updated = re.sub(r"/\)", ")", updated)
+        updated = re.sub(block_pattern, r"\1:\2", updated)
+        if updated != line:
+            lines[idx] = updated
+            changed = True
+            if not reason:
+                reason = "Applied punctuation and block-syntax corrections."
 
-    # Fix odd quote count on the errored line for unterminated strings.
-    if "unterminated string" in error_blob or "eol while scanning string literal" in error_blob:
-        for quote in ("'", '"'):
-            if updated.count(quote) % 2 == 1:
-                updated = f"{updated}{quote}"
-                reason = "Closed unterminated string literal."
-                break
+    error_line = execution.get("error_line")
+    if not isinstance(error_line, int):
+        error_line = _extract_error_line_from_text(error_blob)
+    line_idx = _line_index(code, error_line)
 
-    # Another common typo: stray slash before ')'.
-    candidate = re.sub(r"/\)", ")", updated)
-    if candidate != updated and not reason:
-        updated = candidate
-        reason = "Removed stray slash before closing parenthesis."
+    if line_idx >= 0:
+        target = lines[line_idx]
+        updated = target
 
-    # Missing colon on control/class/def lines.
-    if (
-        "syntaxerror" in error_blob
-        and re.match(r"\s*(if|elif|else|for|while|try|except|finally|with|def|class)\b", updated)
-        and not updated.rstrip().endswith(":")
-    ):
-        updated = f"{updated.rstrip()}:"
-        reason = "Added missing colon at end of Python block statement."
+        # Unterminated strings.
+        if "unterminated string" in error_blob_lower or "eol while scanning string literal" in error_blob_lower:
+            for quote in ("'", '"'):
+                if updated.count(quote) % 2 == 1:
+                    trimmed = updated.rstrip()
+                    if trimmed.endswith(")"):
+                        closing_index = updated.rfind(")")
+                        if closing_index >= 0:
+                            updated = f"{updated[:closing_index]}{quote}{updated[closing_index:]}"
+                        else:
+                            updated = f"{updated}{quote}"
+                    else:
+                        updated = f"{updated}{quote}"
+                    reason = "Closed unterminated string literal."
+                    break
 
-    if updated == target:
+        # NameError for beginner print variables, e.g. print(hello) -> print("hello")
+        missing_name = _extract_name_error_identifier(error_blob)
+        if missing_name and "nameerror" in error_blob_lower and "print(" in updated:
+            safe_word = re.escape(missing_name)
+            candidate = re.sub(
+                rf"(?<!['\"\.])\b{safe_word}\b(?!['\"])",
+                f'"{missing_name}"',
+                updated,
+            )
+            if candidate != updated:
+                updated = candidate
+                reason = "Converted undefined print token to a string literal."
+
+        # IndexError: replace direct list indexing with a safe conditional expression.
+        if "indexerror" in error_blob_lower:
+            index_match = re.search(r"\b([A-Za-z_][A-Za-z0-9_]*)\[(\d+)\]", updated)
+            if index_match:
+                var_name = index_match.group(1)
+                index_value = int(index_match.group(2))
+                safe_expr = f"({var_name}[{index_value}] if len({var_name}) > {index_value} else None)"
+                updated = re.sub(
+                    rf"\b{re.escape(var_name)}\[{index_value}\]",
+                    safe_expr,
+                    updated,
+                    count=1,
+                )
+                reason = "Guarded list indexing to avoid out-of-range access."
+
+        # KeyError: dictionary direct access -> .get(key)
+        if "keyerror" in error_blob_lower:
+            missing_key = _extract_key_error_key(error_blob)
+            if missing_key:
+                key_access = rf"\[\s*(['\"])%s\1\s*\]" % re.escape(missing_key)
+                if re.search(key_access, updated):
+                    updated = re.sub(key_access, f'.get("{missing_key}")', updated)
+                    reason = "Replaced dictionary key access with .get() for missing keys."
+
+        # AttributeError: common list typo add -> append
+        if "attributeerror" in error_blob_lower and ".add(" in updated:
+            updated = updated.replace(".add(", ".append(")
+            reason = "Replaced list .add() with .append()."
+
+        if updated != target:
+            lines[line_idx] = updated
+            changed = True
+
+    if not changed:
         return result
 
-    lines[line_idx] = updated
     fixed_code = "\n".join(lines)
-
     return {
         "fix_available": True,
         "fixed_code": fixed_code,
-        "correct_line": updated,
-        "reason": reason or "Applied deterministic syntax correction.",
+        "correct_line": lines[line_idx] if line_idx >= 0 else "",
+        "reason": reason or "Applied deterministic correction.",
     }
 
 
@@ -152,11 +219,28 @@ NOW RETURN THE FULL FIXED CODE:
 """.strip()
 
 
-def ai_fix_code(code: str, error: str) -> str:
+def ai_fix_code(code: str, error: str, execution: Optional[Dict[str, Any]] = None) -> str:
     if not code or not str(code).strip():
         return ""
 
-    prompt = _build_prompt(str(code), str(error or ""))
+    error_text = str(error or "")
+    prompt = _build_prompt(str(code), error_text)
+
+    execution_context: Dict[str, Any]
+    if execution and isinstance(execution, dict):
+        execution_context = {
+            "error_type": str(execution.get("error_type") or ""),
+            "error_message": str(execution.get("error_message") or error_text),
+            "traceback": str(execution.get("traceback") or error_text),
+            "error_line": execution.get("error_line"),
+        }
+    else:
+        execution_context = {
+            "error_type": "",
+            "error_message": error_text,
+            "traceback": error_text,
+            "error_line": _extract_error_line_from_text(error_text),
+        }
 
     if genai is not None:
         api_key = os.getenv("GEMINI_API_KEY")
@@ -183,15 +267,7 @@ def ai_fix_code(code: str, error: str) -> str:
     else:
         LOGGER.warning("google-genai package is not installed. Falling back to deterministic fixer.")
 
-    fallback = deterministic_fix(
-        str(code),
-        {
-            "error_type": "SyntaxError",
-            "error_message": str(error or ""),
-            "traceback": str(error or ""),
-            "error_line": None,
-        },
-    )
+    fallback = deterministic_fix(str(code), execution_context)
     if fallback.get("fix_available"):
         return str(fallback.get("fixed_code") or "")
     return ""
@@ -216,7 +292,7 @@ def generate_fixed_code(
         }
 
     error_text = str(execution.get("traceback") or execution.get("error_message") or "")
-    ai_code = ai_fix_code(code, error_text)
+    ai_code = ai_fix_code(code, error_text, execution=execution)
     if ai_code and ai_code.strip() and ai_code.strip() != code.strip():
         return {
             "fixed_code": ai_code,

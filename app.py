@@ -80,14 +80,15 @@ def create_app() -> Flask:
 
             print("Received code:", code)
 
-            # If caller did not send error context, derive it from a run.
+            # Always execute once so fixer gets accurate error_type/error_line context.
+            execution = execute_code(code)
+            if execution.get("success"):
+                return jsonify({"fixed_code": code, "fix_available": False, "message": "Code already runs."}), 200
+
             if not error.strip():
-                execution = execute_code(code)
-                if execution.get("success"):
-                    return jsonify({"fixed_code": code, "fix_available": False, "message": "Code already runs."}), 200
                 error = str(execution.get("traceback") or execution.get("error_message") or "")
 
-            fixed_code = ai_fix_code(code, error)
+            fixed_code = ai_fix_code(code, error, execution=execution)
             print("AI returned:", fixed_code)
             fix_available = bool(fixed_code and fixed_code.strip() and fixed_code.strip() != code.strip())
 
