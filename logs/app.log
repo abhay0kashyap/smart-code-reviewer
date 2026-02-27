@@ -1,0 +1,35 @@
+2026-02-27 18:34:01 WARNING [werkzeug]  * Debugger is active!
+2026-02-27 18:34:01 INFO [werkzeug]  * Debugger PIN: 118-303-273
+2026-02-27 18:34:56 INFO [backend.app_factory] /run request ip=127.0.0.1 code_chars=8
+2026-02-27 18:34:56 INFO [services.execution_service] run_user_code invoked. chars=8
+2026-02-27 18:34:56 INFO [analyzer.executor] Normalizing code before execution. chars=8
+2026-02-27 18:34:56 WARNING [analyzer.executor] autopep8 normalization unavailable/failed; falling back to textwrap.dedent.
+2026-02-27 18:34:56 INFO [analyzer.executor] Code normalized with textwrap.dedent fallback.
+2026-02-27 18:34:56 INFO [analyzer.executor] Executing normalized code payload. chars=8 timeout=3s
+2026-02-27 18:34:56 INFO [analyzer.executor] Execution completed successfully.
+2026-02-27 18:34:56 INFO [backend.app_factory] /run request ip=127.0.0.1 code_chars=12
+2026-02-27 18:34:56 INFO [services.execution_service] run_user_code invoked. chars=12
+2026-02-27 18:34:56 INFO [analyzer.executor] Normalizing code before execution. chars=12
+2026-02-27 18:34:56 WARNING [analyzer.executor] autopep8 normalization unavailable/failed; falling back to textwrap.dedent.
+2026-02-27 18:34:56 INFO [analyzer.executor] Code normalized with textwrap.dedent fallback.
+2026-02-27 18:34:56 INFO [analyzer.executor] Executing normalized code payload. chars=12 timeout=3s
+2026-02-27 18:34:56 WARNING [analyzer.executor] Execution failed. type=NameError line=1 msg=name 'hello' is not defined. Did you mean: 'help'?
+2026-02-27 18:34:56 INFO [backend.app_factory] /ai-fix request ip=127.0.0.1 code_chars=12 error_type=NameError error_line=1
+2026-02-27 18:34:56 INFO [analyzer.ai_fixer] AI tutor request: type=NameError line=1 code_chars=12 traceback_chars=9
+2026-02-27 18:34:56 WARNING [analyzer.ai_fixer] OpenAI unavailable or OPENAI_API_KEY missing for structured tutor response.
+2026-02-27 18:34:56 WARNING [analyzer.ai_fixer] OpenAI unavailable or OPENAI_API_KEY missing. Falling back to deterministic fixer.
+2026-02-27 18:34:56 INFO [backend.app_factory] /ai-assist request ip=127.0.0.1 code_chars=8 prompt_chars=8
+2026-02-27 18:34:56 INFO [services.execution_service] run_user_code invoked. chars=8
+2026-02-27 18:34:56 INFO [analyzer.executor] Normalizing code before execution. chars=8
+2026-02-27 18:34:56 WARNING [analyzer.executor] autopep8 normalization unavailable/failed; falling back to textwrap.dedent.
+2026-02-27 18:34:56 INFO [analyzer.executor] Code normalized with textwrap.dedent fallback.
+2026-02-27 18:34:56 INFO [analyzer.executor] Executing normalized code payload. chars=8 timeout=3s
+2026-02-27 18:34:56 INFO [analyzer.executor] Execution completed successfully.
+2026-02-27 18:35:05 INFO [backend.app_factory] /ai-fix request ip=127.0.0.1 code_chars=13 error_type=unknown error_line=None
+2026-02-27 18:35:05 INFO [backend.app_factory] /run request ip=127.0.0.1 code_chars=12
+2026-02-27 18:35:05 INFO [services.execution_service] run_user_code invoked. chars=12
+2026-02-27 18:35:05 INFO [analyzer.executor] Normalizing code before execution. chars=12
+2026-02-27 18:35:05 WARNING [analyzer.executor] autopep8 normalization unavailable/failed; falling back to textwrap.dedent.
+2026-02-27 18:35:05 INFO [analyzer.executor] Code normalized with textwrap.dedent fallback.
+2026-02-27 18:35:05 INFO [analyzer.executor] Executing normalized code payload. chars=12 timeout=3s
+2026-02-27 18:35:05 WARNING [analyzer.executor] Execution failed. type=NameError line=1 msg=name 'hello' is not defined. Did you mean: 'help'?
