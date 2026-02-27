@@ -146,40 +146,47 @@ def _infer_error_type(error_message: str, traceback_text: str) -> str:
 
 def _build_strict_fix_prompt(code: str, error_type: str, error_message: str, traceback_text: str) -> str:
     return f"""
-You are an expert Python debugging assistant.
+You are a senior Python engineer and automated code repair system.
 
-Your task is to fix Python code that contains errors.
+Your job is to repair broken Python code completely.
 
 You MUST:
 1. Fix syntax errors
 2. Fix indentation errors
-3. Fix NameError, TypeError, IndexError, etc.
+3. Fix NameError, TypeError, IndexError, AttributeError, ImportError, ZeroDivisionError, and all other exceptions
 4. Correct missing commas, brackets, colons
-5. Correct improper indentation
-6. Ensure the final code runs without errors
+5. Correct improper indentation and tabs/spaces issues
+6. Add missing imports if required
+7. Define undefined variables safely when possible
+8. Add safe guards for runtime errors if necessary
+9. Fix all errors if multiple errors exist
+10. Ensure the final code runs without crashing
+11. Preserve original intent and logic as much as possible
+12. If code is incomplete, intelligently complete it
 
 IMPORTANT RULES:
-- Return ONLY corrected Python code
+- Output ONLY valid runnable Python code
 - Do NOT include explanation
 - Do NOT include markdown
 - Do NOT include ```python
-- Do NOT include comments unless necessary
-- Do NOT repeat the original broken code
-- Output clean, runnable Python code only
+- Do NOT include headings
+- Do NOT include extra text
+- Do NOT wrap code in quotes
+- Do NOT output anything except pure Python code
 
-Original Code:
+USER CODE:
 {code}
 
-Error Type:
+ERROR TYPE:
 {error_type}
 
-Error Message:
+ERROR MESSAGE:
 {error_message}
 
-Traceback:
+TRACEBACK:
 {traceback_text}
 
-Now return the fully corrected working Python code.
+Now return the FULL corrected Python code.
 """.strip()
 
 
@@ -793,7 +800,11 @@ def _openai_fix(code: str, error_type: str, error_message: str, traceback_text: 
             messages=[
                 {
                     "role": "system",
-                    "content": "You are an expert Python debugger. Return only corrected full Python code.",
+                    "content": (
+                        "You are a Python code repair engine. "
+                        "Return valid runnable Python code only. "
+                        "No explanations, no markdown, no extra text."
+                    ),
                 },
                 {"role": "user", "content": prompt},
             ],
