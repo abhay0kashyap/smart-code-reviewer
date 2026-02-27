@@ -15,6 +15,7 @@ const errorLine = document.getElementById("errorLine");
 const tracebackPanel = document.getElementById("tracebackPanel");
 const highlightPanel = document.getElementById("highlightPanel");
 const explanationPanel = document.getElementById("explanationPanel");
+const improvementsPanel = document.getElementById("improvementsPanel");
 const aiPrompt = document.getElementById("aiPrompt");
 const aiAdvicePanel = document.getElementById("aiAdvicePanel");
 const fixedCodePreview = document.getElementById("fixedCodePreview");
@@ -111,6 +112,7 @@ function renderRunResult(payload, sourceCode) {
         setText(tracebackPanel, "No traceback.");
         setText(highlightPanel, "No highlighted line.");
         setText(explanationPanel, "Code executed successfully.");
+        setText(improvementsPanel, "No improvements needed. Program ran successfully.");
         return;
     }
 
@@ -264,7 +266,7 @@ async function aiFixCode() {
                 setText(explanationPanel, String(fixPayload.explanation));
             }
             if (fixPayload.improvements) {
-                setText(aiAdvicePanel, String(fixPayload.improvements));
+                setText(improvementsPanel, String(fixPayload.improvements));
             }
         } else {
             setValue(fixedCodePreview, fixPayload.message || "No fixed code generated.");
@@ -385,6 +387,7 @@ function clearAll() {
     setText(tracebackPanel, "No traceback.");
     setText(highlightPanel, "No highlighted line.");
     setText(explanationPanel, "No explanation yet.");
+    setText(improvementsPanel, "No improvements yet.");
     setValue(aiPrompt, "");
     setText(aiAdvicePanel, "No tutor suggestions yet.");
     setValue(fixedCodePreview, "No fixed code preview yet.");
