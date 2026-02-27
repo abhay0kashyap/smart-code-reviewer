@@ -7,11 +7,16 @@ import subprocess
 import sys
 import tempfile
 import traceback
+import textwrap
 from typing import Any, Dict, Optional
 
 MAX_CODE_CHARS = 100_000
 DEFAULT_TIMEOUT_SECONDS = 3
 LOGGER = logging.getLogger(__name__)
+try:
+    import autopep8  # type: ignore
+except Exception:  # pragma: no cover
+    autopep8 = None  # type: ignore
 
 
 def _parse_error_type_and_message(stderr_text: str) -> tuple[str, str]:
@@ -42,10 +47,59 @@ def _extract_error_line(stderr_text: str) -> Optional[int]:
     return None
 
 
+def _remove_invalid_trailing_backslashes(code: str) -> str:
+    lines = code.splitlines()
+    if not lines:
+        return code
+
+    cleaned = []
+    for idx, line in enumerate(lines):
+        stripped = line.rstrip()
+        if stripped.endswith("\\"):
+            # Keep valid continuation only when there's a next non-empty, non-comment line.
+            next_line = lines[idx + 1].strip() if idx + 1 < len(lines) else ""
+            if not next_line or next_line.startswith("#"):
+                cleaned.append(stripped[:-1].rstrip())
+                continue
+        cleaned.append(line)
+    return "\n".join(cleaned)
+
+
+def normalize_code(user_code: str) -> str:
+    """Normalize code indentation and formatting before execution."""
+    code = "" if user_code is None else str(user_code)
+    LOGGER.info("Normalizing code before execution. chars=%d", len(code))
+
+    # 1) Replace tabs with 4 spaces.
+    normalized = code.replace("\t", "    ")
+
+    # 2) Remove invalid trailing backslashes.
+    normalized = _remove_invalid_trailing_backslashes(normalized)
+
+    # 3) Try autopep8 formatting.
+    try:
+        if autopep8 is None:
+            raise RuntimeError("autopep8 package is not installed.")
+        formatted = autopep8.fix_code(normalized, options={"aggressive": 1})
+        if isinstance(formatted, str) and formatted.strip():
+            normalized = formatted
+            LOGGER.info("Code normalized with autopep8.")
+    except Exception:
+        LOGGER.warning("autopep8 normalization unavailable/failed; falling back to textwrap.dedent.")
+        try:
+            normalized = textwrap.dedent(normalized)
+            LOGGER.info("Code normalized with textwrap.dedent fallback.")
+        except Exception:
+            LOGGER.exception("textwrap.dedent fallback failed; using minimally normalized code.")
+
+    return normalized
+
+
 def execute_code(code: str, timeout_seconds: int = DEFAULT_TIMEOUT_SECONDS) -> Dict[str, Any]:
     """Execute Python code in a subprocess and return structured execution info."""
     code = "" if code is None else str(code)
-    LOGGER.info("Executing code payload. chars=%d timeout=%ds", len(code), timeout_seconds)
+    code = normalize_code(code)
+    LOGGER.info("Executing normalized code payload. chars=%d timeout=%ds", len(code), timeout_seconds)
 
     if len(code) > MAX_CODE_CHARS:
         return {
