@@ -1,6 +1,7 @@
 const codeEditor = document.getElementById("codeEditor");
 const runBtn = document.getElementById("runBtn");
 const aiFixBtn = document.getElementById("aiFixBtn");
+const aiAssistBtn = document.getElementById("aiAssistBtn");
 const applyFixBtn = document.getElementById("applyFixBtn");
 const clearBtn = document.getElementById("clearBtn");
 
@@ -14,12 +15,25 @@ const errorLine = document.getElementById("errorLine");
 const tracebackPanel = document.getElementById("tracebackPanel");
 const highlightPanel = document.getElementById("highlightPanel");
 const explanationPanel = document.getElementById("explanationPanel");
+const aiPrompt = document.getElementById("aiPrompt");
+const aiAdvicePanel = document.getElementById("aiAdvicePanel");
 const fixedCodePreview = document.getElementById("fixedCodePreview");
 
 let latestFixedCode = "";
 let latestErrorText = "";
+let latestErrorType = "";
+let latestErrorMessage = "";
+let latestRunCode = "";
 
-if (!codeEditor.value.trim()) {
+function setText(el, value) {
+    if (el) el.textContent = String(value);
+}
+
+function setValue(el, value) {
+    if (el) el.value = String(value);
+}
+
+if (codeEditor && !codeEditor.value.trim()) {
     codeEditor.value = [
         "# Write Python code",
         "name = 'Abhay'",
@@ -27,14 +41,18 @@ if (!codeEditor.value.trim()) {
     ].join("\n");
 }
 
-runBtn.addEventListener("click", runCode);
-aiFixBtn.addEventListener("click", aiFixCode);
-applyFixBtn.addEventListener("click", applyFixedCode);
-clearBtn.addEventListener("click", clearAll);
+if (runBtn) runBtn.addEventListener("click", runCode);
+if (aiFixBtn) aiFixBtn.addEventListener("click", aiFixCode);
+if (aiAssistBtn) aiAssistBtn.addEventListener("click", aiAssistCode);
+if (applyFixBtn) applyFixBtn.addEventListener("click", applyFixedCode);
+if (clearBtn) clearBtn.addEventListener("click", clearAll);
 
-async function postJson(url, body) {
+window.addEventListener("error", () => setLoading(false, "UI error"));
+window.addEventListener("unhandledrejection", () => setLoading(false, "Request failed"));
+
+async function postJson(url, body, timeoutMs = 20000) {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 120000);
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
 
     let response;
     try {
@@ -67,14 +85,13 @@ async function postJson(url, body) {
 }
 
 function setLoading(loading, statusText = "Ready") {
-    loader.classList.toggle("hidden", !loading);
-    runBtn.disabled = loading;
-    aiFixBtn.disabled = loading;
-    clearBtn.disabled = loading;
-    if (loading) {
-        applyFixBtn.disabled = true;
-    }
-    statusBadge.textContent = loading ? "Processing..." : statusText;
+    if (loader) loader.classList.toggle("hidden", !loading);
+    if (runBtn) runBtn.disabled = loading;
+    if (aiFixBtn) aiFixBtn.disabled = loading;
+    if (aiAssistBtn) aiAssistBtn.disabled = loading;
+    if (clearBtn) clearBtn.disabled = loading;
+    if (applyFixBtn && loading) applyFixBtn.disabled = true;
+    if (statusBadge) statusBadge.textContent = loading ? "Processing..." : statusText;
 }
 
 function renderRunResult(payload, sourceCode) {
@@ -83,33 +100,40 @@ function renderRunResult(payload, sourceCode) {
 
     if (execution.success) {
         latestErrorText = "";
-        outputPanel.textContent = execution.stdout || execution.output || "Program executed with no output.";
-        errorType.textContent = "None";
-        errorMessage.textContent = "None";
-        errorLine.textContent = "None";
-        tracebackPanel.textContent = "No traceback.";
-        highlightPanel.textContent = "No highlighted line.";
-        explanationPanel.textContent = "Code executed successfully.";
+        latestErrorType = "";
+        latestErrorMessage = "";
+        setText(outputPanel, execution.stdout || execution.output || "Program executed with no output.");
+        setText(errorType, "None");
+        setText(errorMessage, "None");
+        setText(errorLine, "None");
+        setText(tracebackPanel, "No traceback.");
+        setText(highlightPanel, "No highlighted line.");
+        setText(explanationPanel, "Code executed successfully.");
         return;
     }
 
-    outputPanel.textContent = execution.stdout || "No program output.";
-    errorType.textContent = execution.error_type || "ExecutionError";
-    errorMessage.textContent = execution.error_message || "Unknown error";
-    errorLine.textContent = execution.error_line ?? "Unknown";
-    tracebackPanel.textContent = execution.traceback || execution.stderr || "No traceback.";
+    setText(outputPanel, execution.stdout || "No program output.");
+    setText(errorType, execution.error_type || "ExecutionError");
+    setText(errorMessage, execution.error_message || "Unknown error");
+    setText(errorLine, execution.error_line ?? "Unknown");
+    setText(tracebackPanel, execution.traceback || execution.stderr || "No traceback.");
+
     latestErrorText = execution.traceback || execution.error || execution.error_message || "";
+    latestErrorType = String(execution.error_type || "");
+    latestErrorMessage = String(execution.error_message || "");
     const base = explanation?.explanation || "No explanation available.";
     const concept = explanation?.concept ? ` Concept: ${explanation.concept}` : "";
-    explanationPanel.textContent = `${base}${concept}`;
+    setText(explanationPanel, `${base}${concept}`);
 
     renderHighlightedLine(sourceCode, execution.error_line);
 }
 
 function renderHighlightedLine(code, lineNumber) {
+    if (!highlightPanel) return;
+
     const lines = String(code || "").split("\n");
     if (!lineNumber || lineNumber < 1 || lineNumber > lines.length) {
-        highlightPanel.textContent = "No highlighted line.";
+        setText(highlightPanel, "No highlighted line.");
         return;
     }
 
@@ -128,6 +152,8 @@ function renderHighlightedLine(code, lineNumber) {
 }
 
 function renderFixedPreview(autofix) {
+    if (!fixedCodePreview || !applyFixBtn) return;
+
     const fix = autofix || {};
     if (typeof fix.fix_available !== "boolean" || typeof fix.fixed_code !== "string") {
         latestFixedCode = "";
@@ -148,86 +174,162 @@ function renderFixedPreview(autofix) {
     applyFixBtn.disabled = true;
 }
 
+function renderTutorResult(payload) {
+    if (!aiAdvicePanel) return;
+
+    const assistant = payload?.assistant || {};
+    const message = String(assistant.assistant_message || "No tutor guidance available.");
+    const suggestions = Array.isArray(assistant.suggestions) ? assistant.suggestions : [];
+    const adviceText = suggestions.length
+        ? `${message}\n\nSuggestions:\n- ${suggestions.join("\n- ")}`
+        : message;
+
+    aiAdvicePanel.textContent = adviceText;
+
+    if (!fixedCodePreview || !applyFixBtn || !codeEditor) return;
+
+    const generatedCode = String(assistant.generated_code || "");
+    if (assistant.can_apply && generatedCode.trim() && generatedCode.trim() !== codeEditor.value.trim()) {
+        latestFixedCode = generatedCode;
+        fixedCodePreview.value = generatedCode;
+        applyFixBtn.disabled = false;
+    }
+}
+
 async function runCode() {
+    if (!codeEditor) return;
+
     const code = codeEditor.value;
-    setLoading(true);
+    let status = "Ready";
+    setLoading(true, "Running...");
 
     try {
-        const runPayload = await postJson("/run", { code });
+        const runPayload = await postJson("/run", { code }, 12000);
+        latestRunCode = code;
         renderRunResult(runPayload, code);
-        statusBadge.textContent = runPayload.execution?.success ? "Run successful" : "Run failed";
+        status = runPayload.execution?.success ? "Run successful" : "Run failed";
     } catch (err) {
-        outputPanel.textContent = "";
-        tracebackPanel.textContent = String(err.message || err);
-        statusBadge.textContent = "Run request failed";
+        setText(outputPanel, "");
+        setText(tracebackPanel, String(err.message || err));
+        status = "Run request failed";
     } finally {
-        setLoading(false, statusBadge.textContent);
+        setLoading(false, status);
     }
 }
 
 async function aiFixCode() {
+    if (!codeEditor) return;
+
     const code = codeEditor.value;
-    setLoading(true);
+    if (!latestErrorType || latestErrorType === "None" || latestRunCode !== code) {
+        alert("Run code first to detect error");
+        return;
+    }
+
+    let status = "Ready";
+    const originalText = aiFixBtn ? aiFixBtn.textContent : "AI Auto Fix";
+    if (aiFixBtn) {
+        aiFixBtn.textContent = "Fixing with AI...";
+        aiFixBtn.disabled = true;
+    }
+    setLoading(true, "Fixing with AI...");
 
     try {
-        let errorText = latestErrorText;
-        if (!errorText) {
-            const runPayload = await postJson("/run", { code });
-            renderRunResult(runPayload, code);
+        const fixPayload = await postJson(
+            "/ai-fix",
+            {
+                original_code: code,
+                error_message: latestErrorMessage,
+                traceback: latestErrorText,
+            },
+            30000
+        );
 
-            if (runPayload.execution?.success) {
-                renderFixedPreview({ fix_available: false });
-                statusBadge.textContent = "Code already valid";
-                return;
-            }
-
-            errorText =
-                runPayload.execution?.traceback ||
-                runPayload.execution?.error ||
-                runPayload.execution?.error_message ||
-                "";
-        }
-
-        const fixPayload = await postJson("/ai_fix", { code, error: errorText });
-        renderFixedPreview(fixPayload);
-
-        if (fixPayload.fix_available) {
-            statusBadge.textContent = "Fixed code generated";
+        const fixedCode = String(fixPayload.fixed_code || "").trim();
+        if (fixedCode) {
+            setValue(fixedCodePreview, fixedCode);
+            latestFixedCode = fixedCode;
+            if (applyFixBtn) applyFixBtn.disabled = false;
+            status = "Fixed code generated";
         } else {
-            statusBadge.textContent = fixPayload.message || "No auto fix available";
+            setValue(fixedCodePreview, fixPayload.message || "No fixed code generated.");
+            if (applyFixBtn) applyFixBtn.disabled = true;
+            status = fixPayload.message || "No auto fix available";
         }
     } catch (err) {
-        fixedCodePreview.value = `Auto-fix failed: ${String(err.message || err)}`;
-        applyFixBtn.disabled = true;
-        statusBadge.textContent = "Auto-fix request failed";
+        setValue(fixedCodePreview, `Auto-fix failed: ${String(err.message || err)}`);
+        if (applyFixBtn) applyFixBtn.disabled = true;
+        status = "Auto-fix request failed";
     } finally {
-        setLoading(false, statusBadge.textContent);
+        setLoading(false, status);
+        if (aiFixBtn) {
+            aiFixBtn.disabled = false;
+            aiFixBtn.textContent = originalText || "AI Auto Fix";
+        }
+    }
+}
+
+async function aiAssistCode() {
+    if (!codeEditor || !aiPrompt) return;
+
+    const code = codeEditor.value;
+    const prompt = aiPrompt.value;
+
+    if (!code.trim() && !prompt.trim()) {
+        setText(aiAdvicePanel, "Write code or enter a question for AI Tutor.");
+        return;
+    }
+
+    let status = "Ready";
+    setLoading(true, "Asking AI Tutor...");
+
+    try {
+        const assistPayload = await postJson("/ai_assist", { code, prompt, error: latestErrorText }, 35000);
+        if (assistPayload.execution) {
+            renderRunResult(
+                {
+                    execution: assistPayload.execution,
+                    explanation: assistPayload.explanation || {},
+                },
+                code
+            );
+        }
+        renderTutorResult(assistPayload);
+        status = "AI tutor response ready";
+    } catch (err) {
+        setText(aiAdvicePanel, `AI Tutor failed: ${String(err.message || err)}`);
+        status = "AI tutor request failed";
+    } finally {
+        setLoading(false, status);
     }
 }
 
 function applyFixedCode() {
-    const editor = document.getElementById("codeEditor");
-    const fixedCodePreview = document.getElementById("fixedCodePreview");
-    editor.value = fixedCodePreview.value;
-    latestFixedCode = editor.value;
-    fixedCodePreview.value = "Fixed code applied to editor.";
+    if (!codeEditor || !fixedCodePreview || !applyFixBtn) return;
+
+    codeEditor.value = fixedCodePreview.value;
+    latestFixedCode = codeEditor.value;
     applyFixBtn.disabled = true;
-    statusBadge.textContent = "Fixed code applied. Run again.";
+    setText(statusBadge, "Fixed code applied. Run again.");
 }
 
 function clearAll() {
-    codeEditor.value = "";
-    outputPanel.textContent = "Run code to see output.";
-    errorType.textContent = "None";
-    errorMessage.textContent = "None";
-    errorLine.textContent = "None";
-    tracebackPanel.textContent = "No traceback.";
-    highlightPanel.textContent = "No highlighted line.";
-    explanationPanel.textContent = "No explanation yet.";
-    fixedCodePreview.value = "No fixed code preview yet.";
+    if (codeEditor) codeEditor.value = "";
+    setText(outputPanel, "Run code to see output.");
+    setText(errorType, "None");
+    setText(errorMessage, "None");
+    setText(errorLine, "None");
+    setText(tracebackPanel, "No traceback.");
+    setText(highlightPanel, "No highlighted line.");
+    setText(explanationPanel, "No explanation yet.");
+    setValue(aiPrompt, "");
+    setText(aiAdvicePanel, "No tutor suggestions yet.");
+    setValue(fixedCodePreview, "No fixed code preview yet.");
+
     latestFixedCode = "";
-    applyFixBtn.disabled = true;
-    statusBadge.textContent = "Cleared";
+    if (applyFixBtn) applyFixBtn.disabled = true;
+    setText(statusBadge, "Cleared");
+    if (loader) loader.classList.add("hidden");
 }
 
 function escapeHtml(text) {
@@ -235,6 +337,6 @@ function escapeHtml(text) {
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
+        .replace(/\"/g, "&quot;")
         .replace(/'/g, "&#039;");
 }

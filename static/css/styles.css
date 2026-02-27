@@ -156,7 +156,8 @@ body {
 }
 
 pre,
-#fixedCodePreview {
+#fixedCodePreview,
+#aiPrompt {
     margin: 0;
     width: 100%;
     border: 1px solid #25385e;
@@ -172,9 +173,19 @@ pre,
     min-height: 60px;
 }
 
-#fixedCodePreview {
+#fixedCodePreview,
+#aiPrompt {
     resize: vertical;
     min-height: 110px;
+}
+
+#aiPrompt {
+    margin-bottom: 8px;
+}
+
+.tutor-btn {
+    width: 100%;
+    margin-bottom: 8px;
 }
 
 .meta-grid {

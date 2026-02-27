@@ -5,12 +5,12 @@ import os
 
 from flask import Flask, jsonify, render_template, request
 
-from analyzer.ai_fixer import ai_fix_code
+from analyzer.ai_fixer import ai_assist, ai_fix_code, ai_fix_with_openai
 from analyzer.error_explainer import explain_error
 from analyzer.executor import execute_code
 
 
-API_PATHS = {"/run", "/ai_fix", "/ai-fix"}
+API_PATHS = {"/run", "/ai_fix", "/ai-fix", "/ai_assist", "/ai-assist"}
 
 
 def create_app() -> Flask:
@@ -31,6 +31,7 @@ def create_app() -> Flask:
             "error_type": "ExecutionError",
             "error_message": None,
             "error_line": None,
+            "error_line_number": None,
             "traceback": "",
             "return_code": None,
             "timed_out": False,
@@ -49,20 +50,21 @@ def create_app() -> Flask:
                 execution["error_type"] = "InputError"
                 execution["error_message"] = "No code provided."
                 explanation = explain_error(code, execution["error_message"], execution["error_line"])
-                return jsonify({"execution": execution, "explanation": explanation}), 400
+                return jsonify({"success": False, "execution": execution, "explanation": explanation}), 400
 
             execution = execute_code(code)
+            execution["error_line_number"] = execution.get("error_line")
             if not execution.get("success"):
                 error_text = execution.get("traceback") or execution.get("error_message") or ""
                 explanation = explain_error(code, str(error_text), execution.get("error_line"))
 
-            return jsonify({"execution": execution, "explanation": explanation}), 200
+            return jsonify({"success": bool(execution.get("success")), "execution": execution, "explanation": explanation}), 200
         except Exception as exc:  # pragma: no cover - defensive fallback
             app.logger.exception("Unexpected /run error")
             execution["error_message"] = str(exc)
             execution["traceback"] = str(exc)
             explanation = explain_error("", str(exc), execution.get("error_line"))
-            return jsonify({"execution": execution, "explanation": explanation}), 500
+            return jsonify({"success": False, "execution": execution, "explanation": explanation}), 500
 
     @app.post("/ai_fix")
     @app.post("/ai-fix")
@@ -72,37 +74,79 @@ def create_app() -> Flask:
             if payload is None or not isinstance(payload, dict):
                 return jsonify({"fixed_code": "", "fix_available": False, "message": "Invalid JSON body."}), 400
 
-            code = str(payload.get("code", ""))
-            error = str(payload.get("error", ""))
+            code = str(payload.get("original_code", payload.get("code", "")))
+            error_message = str(payload.get("error_message", payload.get("error", "")))
+            traceback_text = str(payload.get("traceback", ""))
 
             if not code.strip():
                 return jsonify({"fixed_code": code, "fix_available": False, "message": "No code provided."}), 400
 
-            print("Received code:", code)
+            if not error_message.strip():
+                return jsonify({"fixed_code": "", "fix_available": False, "message": "No error to fix"}), 200
 
-            # Always execute once so fixer gets accurate error_type/error_line context.
-            execution = execute_code(code)
-            if execution.get("success"):
-                return jsonify({"fixed_code": code, "fix_available": False, "message": "Code already runs."}), 200
+            fixed_code = ai_fix_with_openai(code, error_message, traceback_text)
 
-            if not error.strip():
-                error = str(execution.get("traceback") or execution.get("error_message") or "")
+            # If OpenAI fails/unavailable, keep deterministic fallback.
+            if not fixed_code.strip():
+                execution = {
+                    "error_type": "",
+                    "error_message": error_message,
+                    "traceback": traceback_text,
+                    "error_line": None,
+                }
+                fixed_code = ai_fix_code(code, f"{error_message}\n{traceback_text}", execution=execution)
 
-            fixed_code = ai_fix_code(code, error, execution=execution)
-            print("AI returned:", fixed_code)
-            fix_available = bool(fixed_code and fixed_code.strip() and fixed_code.strip() != code.strip())
+            fix_available = bool(fixed_code.strip() and fixed_code.strip() != code.strip())
+            message = "Fix generated." if fix_available else "No usable fix generated."
 
             return jsonify(
                 {
-                    "fixed_code": fixed_code or code,
+                    "fixed_code": fixed_code if fix_available else "",
                     "fix_available": fix_available,
-                    "message": "Fix generated." if fix_available else "No usable fix generated.",
+                    "message": message,
                 }
             ), 200
         except Exception as exc:  # pragma: no cover - defensive fallback
             app.logger.exception("Unexpected /ai_fix error")
             print("AI ERROR:", str(exc))
             return jsonify({"fixed_code": "", "fix_available": False, "error": str(exc)}), 200
+
+    @app.post("/ai_assist")
+    @app.post("/ai-assist")
+    def ai_assist_route():
+        try:
+            payload = request.get_json(silent=True)
+            if payload is None or not isinstance(payload, dict):
+                return jsonify({"assistant": {}, "message": "Invalid JSON body."}), 400
+
+            code = str(payload.get("code", ""))
+            prompt = str(payload.get("prompt", ""))
+
+            if not code.strip() and not prompt.strip():
+                return jsonify({"assistant": {}, "message": "Provide code or a question prompt."}), 400
+
+            execution = None
+            explanation = None
+            if code.strip():
+                execution = execute_code(code)
+                if not execution.get("success"):
+                    error_text = execution.get("traceback") or execution.get("error_message") or ""
+                    explanation = explain_error(code, str(error_text), execution.get("error_line"))
+
+            assistant_payload = ai_assist(code, prompt, execution=execution)
+            return (
+                jsonify(
+                    {
+                        "assistant": assistant_payload,
+                        "execution": execution,
+                        "explanation": explanation,
+                    }
+                ),
+                200,
+            )
+        except Exception as exc:  # pragma: no cover - defensive fallback
+            app.logger.exception("Unexpected /ai_assist error")
+            return jsonify({"assistant": {}, "error": str(exc)}), 200
 
     @app.errorhandler(404)
     def not_found(_error):
