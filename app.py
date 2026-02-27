@@ -5,7 +5,7 @@ import os
 
 from flask import Flask, jsonify, render_template, request
 
-from analyzer.ai_fixer import ai_assist, ai_fix_code, ai_fix_with_openai
+from analyzer.ai_fixer import ai_assist, ai_fix_code, ai_fix_with_openai, ai_tutor_structured_response
 from analyzer.error_explainer import explain_error
 from analyzer.executor import execute_code
 
@@ -123,7 +123,9 @@ def create_app() -> Flask:
                 return jsonify({"fixed_code": "", "fix_available": False, "message": "Invalid JSON body."}), 400
 
             code = str(payload.get("original_code", payload.get("code", "")))
+            error_type = str(payload.get("error_type", ""))
             error_message = str(payload.get("error_message", payload.get("error", "")))
+            error_line = payload.get("error_line")
             traceback_text = str(payload.get("traceback", ""))
 
             if not code.strip():
@@ -132,15 +134,22 @@ def create_app() -> Flask:
             if not error_message.strip():
                 return jsonify({"fixed_code": "", "fix_available": False, "message": "No error to fix"}), 200
 
-            fixed_code = ai_fix_with_openai(code, error_message, traceback_text)
+            tutor_response = ai_tutor_structured_response(
+                code=code,
+                error_type=error_type or "Error",
+                error_message=error_message,
+                error_line=error_line if isinstance(error_line, int) else None,
+                traceback_text=traceback_text,
+            )
+            fixed_code = str(tutor_response.get("fixed_code") or "")
 
             # If OpenAI fails/unavailable, keep deterministic fallback.
             if not fixed_code.strip():
                 execution = {
-                    "error_type": "",
+                    "error_type": error_type,
                     "error_message": error_message,
                     "traceback": traceback_text,
-                    "error_line": None,
+                    "error_line": error_line if isinstance(error_line, int) else None,
                 }
                 fixed_code = ai_fix_code(code, f"{error_message}\n{traceback_text}", execution=execution)
 
@@ -150,6 +159,8 @@ def create_app() -> Flask:
             return jsonify(
                 {
                     "fixed_code": fixed_code if fix_available else "",
+                    "explanation": tutor_response.get("explanation", ""),
+                    "improvements": tutor_response.get("improvements", ""),
                     "fix_available": fix_available,
                     "message": message,
                 }

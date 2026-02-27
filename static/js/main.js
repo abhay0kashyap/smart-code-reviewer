@@ -23,6 +23,7 @@ let latestFixedCode = "";
 let latestErrorText = "";
 let latestErrorType = "";
 let latestErrorMessage = "";
+let latestErrorLine = null;
 let latestRunCode = "";
 
 function setText(el, value) {
@@ -102,6 +103,7 @@ function renderRunResult(payload, sourceCode) {
         latestErrorText = "";
         latestErrorType = "";
         latestErrorMessage = "";
+        latestErrorLine = null;
         setText(outputPanel, execution.stdout || execution.output || "Program executed with no output.");
         setText(errorType, "None");
         setText(errorMessage, "None");
@@ -121,6 +123,7 @@ function renderRunResult(payload, sourceCode) {
     latestErrorText = execution.traceback || execution.error || execution.error_message || "";
     latestErrorType = String(execution.error_type || "");
     latestErrorMessage = String(execution.error_message || "");
+    latestErrorLine = Number.isInteger(execution.error_line) ? execution.error_line : null;
     const base = explanation?.explanation || "No explanation available.";
     const concept = explanation?.concept ? ` Concept: ${explanation.concept}` : "";
     setText(explanationPanel, `${base}${concept}`);
@@ -239,7 +242,9 @@ async function aiFixCode() {
             "/ai-fix",
             {
                 original_code: code,
+                error_type: latestErrorType,
                 error_message: latestErrorMessage,
+                error_line: latestErrorLine,
                 traceback: latestErrorText,
             },
             30000
@@ -251,6 +256,12 @@ async function aiFixCode() {
             latestFixedCode = fixedCode;
             if (applyFixBtn) applyFixBtn.disabled = false;
             status = "Fixed code generated";
+            if (fixPayload.explanation) {
+                setText(explanationPanel, String(fixPayload.explanation));
+            }
+            if (fixPayload.improvements) {
+                setText(aiAdvicePanel, String(fixPayload.improvements));
+            }
         } else {
             setValue(fixedCodePreview, fixPayload.message || "No fixed code generated.");
             if (applyFixBtn) applyFixBtn.disabled = true;

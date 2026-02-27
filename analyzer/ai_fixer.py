@@ -183,6 +183,62 @@ Now return the fully corrected working Python code.
 """.strip()
 
 
+def _build_structured_tutor_prompt(
+    code: str,
+    error_type: str,
+    error_message: str,
+    error_line: Optional[int],
+    traceback_text: str,
+) -> str:
+    return f"""
+You are a Python debugging assistant.
+
+Analyze and fix the user code.
+Return STRICT JSON only in this format:
+{{
+  "explanation": "short beginner-friendly explanation",
+  "fixed_code": "full corrected python code",
+  "improvements": "short improvement suggestions"
+}}
+
+Rules:
+- JSON only
+- No markdown
+- No extra keys
+- fixed_code must be full runnable Python code
+
+Original Code:
+{code}
+
+Error Type:
+{error_type}
+
+Error Message:
+{error_message}
+
+Error Line:
+{error_line}
+
+Traceback:
+{traceback_text}
+""".strip()
+
+
+def _validate_tutor_payload(parsed: Dict[str, Any]) -> Optional[Dict[str, str]]:
+    explanation = str(parsed.get("explanation") or "").strip()
+    fixed_code = clean_code(str(parsed.get("fixed_code") or ""))
+    improvements = str(parsed.get("improvements") or "").strip()
+
+    if not fixed_code:
+        return None
+
+    return {
+        "explanation": explanation or "I fixed the code based on the error context.",
+        "fixed_code": fixed_code,
+        "improvements": improvements or "Re-run after each small change and handle the first traceback error first.",
+    }
+
+
 def _safe_suggestions(items: Any) -> List[str]:
     if not isinstance(items, list):
         return []
@@ -490,43 +546,85 @@ def _openai_chat(messages: List[Dict[str, str]], temperature: float = 0.0) -> st
 
 def ai_fix_with_openai(original_code: str, error_message: str, traceback_text: str) -> str:
     """Primary OpenAI fixer for /ai-fix endpoint using requested prompt/model."""
-    if OpenAI is None or not os.getenv("OPENAI_API_KEY"):
-        return ""
-
-    error_type = _infer_error_type(error_message, traceback_text)
-    prompt = _build_strict_fix_prompt(
+    result = ai_tutor_structured_response(
         code=original_code,
-        error_type=error_type,
+        error_type=_infer_error_type(error_message, traceback_text),
         error_message=error_message,
+        error_line=_extract_error_line_from_text(traceback_text),
         traceback_text=traceback_text,
     )
+    return str(result.get("fixed_code") or "")
+
+
+def ai_tutor_structured_response(
+    code: str,
+    error_type: str,
+    error_message: str,
+    error_line: Optional[int],
+    traceback_text: str,
+) -> Dict[str, str]:
+    prompt = _build_structured_tutor_prompt(code, error_type, error_message, error_line, traceback_text)
+    LOGGER.info(
+        "AI tutor request: type=%s line=%s code_chars=%d traceback_chars=%d",
+        error_type,
+        error_line,
+        len(code),
+        len(traceback_text),
+    )
+
+    if OpenAI is None or not os.getenv("OPENAI_API_KEY"):
+        LOGGER.warning("OpenAI unavailable or OPENAI_API_KEY missing for structured tutor response.")
+        return {
+            "explanation": "AI service is unavailable. Falling back to local fixer.",
+            "fixed_code": "",
+            "improvements": "Set OPENAI_API_KEY and retry for full AI tutor output.",
+        }
 
     client = OpenAI()
+    raw_text = ""
 
-    # Preferred path requested by user: response.output_text via Responses API.
     try:
         response = client.responses.create(model=OPENAI_FIX_MODEL, input=prompt)
-        fixed = clean_code(str(getattr(response, "output_text", "") or ""))
-        if fixed:
-            return fixed
+        raw_text = str(getattr(response, "output_text", "") or "")
     except Exception as exc:  # pragma: no cover
-        LOGGER.exception("OpenAI responses API fix error: %s", exc)
+        LOGGER.exception("OpenAI responses API tutor error: %s", exc)
 
-    # Fallback for compatibility with older SDK behavior.
-    try:
-        response = client.chat.completions.create(
-            model=OPENAI_FIX_MODEL,
-            messages=[
-                {"role": "system", "content": "You are a Python debugging assistant."},
-                {"role": "user", "content": prompt},
-            ],
-            temperature=0,
-        )
-        raw = (response.choices[0].message.content or "") if response.choices else ""
-        return clean_code(raw)
-    except Exception as exc:  # pragma: no cover
-        LOGGER.exception("OpenAI chat fallback fix error: %s", exc)
-        return ""
+    if not raw_text.strip():
+        try:
+            response = client.chat.completions.create(
+                model=OPENAI_FIX_MODEL,
+                messages=[
+                    {"role": "system", "content": "Return strict JSON only."},
+                    {"role": "user", "content": prompt},
+                ],
+                temperature=0,
+            )
+            raw_text = (response.choices[0].message.content or "") if response.choices else ""
+        except Exception as exc:  # pragma: no cover
+            LOGGER.exception("OpenAI chat fallback tutor error: %s", exc)
+
+    LOGGER.info("AI raw response: %s", (raw_text[:1200] + "...") if len(raw_text) > 1200 else raw_text)
+    parsed = _extract_json_object(raw_text)
+    if parsed:
+        validated = _validate_tutor_payload(parsed)
+        if validated:
+            LOGGER.info("AI parsed response: %s", validated)
+            return validated
+
+    LOGGER.warning("AI output invalid JSON payload; using deterministic fallback.")
+    execution_context = {
+        "error_type": error_type,
+        "error_message": error_message,
+        "traceback": traceback_text,
+        "error_line": error_line,
+    }
+    fallback = deterministic_fix(code, execution_context)
+    fallback_code = str(fallback.get("fixed_code") or "") if fallback.get("fix_available") else ""
+    return {
+        "explanation": "AI response was invalid. Applied local deterministic fallback.",
+        "fixed_code": fallback_code,
+        "improvements": "Fix the first traceback issue, then re-run and repeat.",
+    }
 
 
 def deterministic_fix(code: str, execution: Dict[str, Any]) -> Dict[str, Any]:
