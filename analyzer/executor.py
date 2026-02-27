@@ -1,14 +1,17 @@
 from __future__ import annotations
 
+import logging
 import os
 import re
 import subprocess
 import sys
 import tempfile
+import traceback
 from typing import Any, Dict, Optional
 
 MAX_CODE_CHARS = 100_000
 DEFAULT_TIMEOUT_SECONDS = 3
+LOGGER = logging.getLogger(__name__)
 
 
 def _parse_error_type_and_message(stderr_text: str) -> tuple[str, str]:
@@ -42,6 +45,7 @@ def _extract_error_line(stderr_text: str) -> Optional[int]:
 def execute_code(code: str, timeout_seconds: int = DEFAULT_TIMEOUT_SECONDS) -> Dict[str, Any]:
     """Execute Python code in a subprocess and return structured execution info."""
     code = "" if code is None else str(code)
+    LOGGER.info("Executing code payload. chars=%d timeout=%ds", len(code), timeout_seconds)
 
     if len(code) > MAX_CODE_CHARS:
         return {
@@ -54,6 +58,12 @@ def execute_code(code: str, timeout_seconds: int = DEFAULT_TIMEOUT_SECONDS) -> D
             "error_line": None,
             "error_line_number": None,
             "traceback": "",
+            "error": {
+                "type": "InputTooLargeError",
+                "message": f"Code is too large. Maximum allowed size is {MAX_CODE_CHARS} characters.",
+                "line": None,
+                "traceback": "",
+            },
             "return_code": None,
             "timed_out": False,
         }
@@ -81,6 +91,7 @@ def execute_code(code: str, timeout_seconds: int = DEFAULT_TIMEOUT_SECONDS) -> D
             stderr_text = result.stderr or ""
 
             if result.returncode == 0:
+                LOGGER.info("Execution completed successfully.")
                 return {
                     "success": True,
                     "stdout": stdout_text,
@@ -91,12 +102,14 @@ def execute_code(code: str, timeout_seconds: int = DEFAULT_TIMEOUT_SECONDS) -> D
                     "error_line": None,
                     "error_line_number": None,
                     "traceback": "",
+                    "error": None,
                     "return_code": 0,
                     "timed_out": False,
                 }
 
             error_type, error_message = _parse_error_type_and_message(stderr_text)
             error_line = _extract_error_line(stderr_text)
+            LOGGER.warning("Execution failed. type=%s line=%s msg=%s", error_type, error_line, error_message)
             return {
                 "success": False,
                 "stdout": stdout_text,
@@ -107,6 +120,12 @@ def execute_code(code: str, timeout_seconds: int = DEFAULT_TIMEOUT_SECONDS) -> D
                 "error_line": error_line,
                 "error_line_number": error_line,
                 "traceback": stderr_text,
+                "error": {
+                    "type": error_type,
+                    "message": error_message,
+                    "line": error_line,
+                    "traceback": stderr_text,
+                },
                 "return_code": result.returncode,
                 "timed_out": False,
             }
@@ -114,6 +133,7 @@ def execute_code(code: str, timeout_seconds: int = DEFAULT_TIMEOUT_SECONDS) -> D
     except subprocess.TimeoutExpired as timeout_error:
         partial_stdout = (timeout_error.stdout or "") if isinstance(timeout_error.stdout, str) else ""
         partial_stderr = (timeout_error.stderr or "") if isinstance(timeout_error.stderr, str) else ""
+        LOGGER.warning("Execution timed out after %d seconds.", timeout_seconds)
         return {
             "success": False,
             "stdout": partial_stdout,
@@ -124,11 +144,19 @@ def execute_code(code: str, timeout_seconds: int = DEFAULT_TIMEOUT_SECONDS) -> D
             "error_line": None,
             "error_line_number": None,
             "traceback": partial_stderr,
+            "error": {
+                "type": "TimeoutError",
+                "message": f"Execution timed out after {timeout_seconds} seconds.",
+                "line": None,
+                "traceback": partial_stderr,
+            },
             "return_code": None,
             "timed_out": True,
         }
 
     except Exception as exc:  # pragma: no cover - defensive fallback
+        full_traceback = traceback.format_exc()
+        LOGGER.exception("Execution engine failure")
         return {
             "success": False,
             "stdout": "",
@@ -138,7 +166,13 @@ def execute_code(code: str, timeout_seconds: int = DEFAULT_TIMEOUT_SECONDS) -> D
             "error_message": str(exc),
             "error_line": None,
             "error_line_number": None,
-            "traceback": "",
+            "traceback": full_traceback,
+            "error": {
+                "type": "ExecutionEngineError",
+                "message": str(exc),
+                "line": None,
+                "traceback": full_traceback,
+            },
             "return_code": None,
             "timed_out": False,
         }

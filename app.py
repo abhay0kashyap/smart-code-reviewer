@@ -45,26 +45,74 @@ def create_app() -> Flask:
         try:
             payload = request.get_json(silent=True) or {}
             code = str(payload.get("code", ""))
+            app.logger.info("/run invoked. code_chars=%d", len(code))
 
             if not code.strip():
                 execution["error_type"] = "InputError"
                 execution["error_message"] = "No code provided."
+                execution["error"] = {
+                    "type": execution["error_type"],
+                    "message": execution["error_message"],
+                    "line": None,
+                    "traceback": "",
+                }
                 explanation = explain_error(code, execution["error_message"], execution["error_line"])
-                return jsonify({"success": False, "execution": execution, "explanation": explanation}), 400
+                return (
+                    jsonify(
+                        {
+                            "success": False,
+                            "output": "",
+                            "error": execution["error"],
+                            "execution": execution,
+                            "explanation": explanation,
+                        }
+                    ),
+                    400,
+                )
 
             execution = execute_code(code)
             execution["error_line_number"] = execution.get("error_line")
             if not execution.get("success"):
                 error_text = execution.get("traceback") or execution.get("error_message") or ""
                 explanation = explain_error(code, str(error_text), execution.get("error_line"))
+            else:
+                execution["error"] = None
 
-            return jsonify({"success": bool(execution.get("success")), "execution": execution, "explanation": explanation}), 200
+            return (
+                jsonify(
+                    {
+                        "success": bool(execution.get("success")),
+                        "output": execution.get("output", ""),
+                        "error": execution.get("error"),
+                        "execution": execution,
+                        "explanation": explanation,
+                    }
+                ),
+                200,
+            )
         except Exception as exc:  # pragma: no cover - defensive fallback
             app.logger.exception("Unexpected /run error")
             execution["error_message"] = str(exc)
             execution["traceback"] = str(exc)
+            execution["error"] = {
+                "type": execution.get("error_type") or "ExecutionError",
+                "message": execution["error_message"],
+                "line": execution.get("error_line"),
+                "traceback": execution.get("traceback", ""),
+            }
             explanation = explain_error("", str(exc), execution.get("error_line"))
-            return jsonify({"success": False, "execution": execution, "explanation": explanation}), 500
+            return (
+                jsonify(
+                    {
+                        "success": False,
+                        "output": "",
+                        "error": execution["error"],
+                        "execution": execution,
+                        "explanation": explanation,
+                    }
+                ),
+                500,
+            )
 
     @app.post("/ai_fix")
     @app.post("/ai-fix")
