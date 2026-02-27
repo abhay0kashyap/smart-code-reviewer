@@ -208,6 +208,9 @@ async function runCode() {
     let status = "Ready";
     setLoading(true, "Running...");
 
+    // Reset fix state when new code is run
+    resetFixState();
+
     try {
         const runPayload = await postJson("/run", { code }, 12000);
         latestRunCode = code;
@@ -223,15 +226,26 @@ async function runCode() {
 }
 
 async function requestAiFixForCurrentCode(code) {
-    return postJson(
-        "/ai-fix",
-        {
-            original_code: code,
+    // Build the payload with error info
+    const payload = {
+        code: code,
+        error: latestErrorType && latestErrorType !== "None" ? {
             error_type: latestErrorType,
             error_message: latestErrorMessage,
-            error_line: latestErrorLine,
-            traceback: latestErrorText,
-        },
+            traceback: latestErrorText
+        } : undefined
+    };
+    
+    console.log("AI Fix Request:", {
+        codeLength: payload.code.length,
+        hasError: !!payload.error,
+        errorType: latestErrorType,
+        errorMessage: latestErrorMessage?.substring(0, 100)
+    });
+    
+    return postJson(
+        "/ai-fix",
+        payload,
         30000
     );
 }
@@ -240,43 +254,51 @@ async function aiFixCode() {
     if (!codeEditor) return;
 
     const code = codeEditor.value;
-    if (!latestErrorType || latestErrorType === "None" || latestRunCode !== code) {
-        alert("Run code first to detect error");
+
+    // Check if we have error info from a previous run - this is required for AI fix
+    if (!latestErrorType || latestErrorType === "None") {
+        alert("Run code first to detect error before using AI Auto Fix");
         return;
     }
 
     let status = "Ready";
     const originalText = aiFixBtn ? aiFixBtn.textContent : "AI Auto Fix";
     if (aiFixBtn) {
-        aiFixBtn.textContent = "Fixing with AI...";
+        aiFixBtn.textContent = "AI Fixing...";
         aiFixBtn.disabled = true;
     }
-    setLoading(true, "Fixing with AI...");
+    setLoading(true, "AI is fixing your code...");
 
     try {
         const fixPayload = await requestAiFixForCurrentCode(code);
+        
+        console.log("AI Fix Response:", fixPayload);
 
-        const fixedCode = String(fixPayload.fixed_code || "").trim();
-        if (fixedCode) {
+        // Handle new response format: { success: true/false, fixed_code: "...", error: "..." }
+        if (fixPayload.success === true && fixPayload.fixed_code && fixPayload.fixed_code.trim()) {
+            const fixedCode = fixPayload.fixed_code.trim();
             setValue(fixedCodePreview, fixedCode);
             latestFixedCode = fixedCode;
             if (applyFixBtn) applyFixBtn.disabled = false;
             status = "Fixed code generated";
-            if (fixPayload.explanation) {
-                setText(explanationPanel, String(fixPayload.explanation));
-            }
-            if (fixPayload.improvements) {
-                setText(improvementsPanel, String(fixPayload.improvements));
-            }
+            setText(explanationPanel, "AI successfully generated a fix.");
+            setText(improvementsPanel, "Review the fixed code and click 'Apply Fix' to use it.");
         } else {
-            setValue(fixedCodePreview, fixPayload.message || "No fixed code generated.");
+            // Handle failure case
+            const errorMsg = fixPayload.error || "No usable fix generated.";
+            setValue(fixedCodePreview, errorMsg);
             if (applyFixBtn) applyFixBtn.disabled = true;
-            status = fixPayload.message || "No auto fix available";
+            status = fixPayload.success === false ? errorMsg : "No auto fix available";
+            setText(explanationPanel, errorMsg);
+            setText(improvementsPanel, "Try running the code again or check the error details.");
         }
     } catch (err) {
-        setValue(fixedCodePreview, `Auto-fix failed: ${String(err.message || err)}`);
+        const errorText = `Auto-fix failed: ${String(err.message || err)}`;
+        console.error("AI Fix Error:", err);
+        setValue(fixedCodePreview, errorText);
         if (applyFixBtn) applyFixBtn.disabled = true;
         status = "Auto-fix request failed";
+        setText(explanationPanel, errorText);
     } finally {
         setLoading(false, status);
         if (aiFixBtn) {
@@ -392,10 +414,18 @@ function clearAll() {
     setText(aiAdvicePanel, "No tutor suggestions yet.");
     setValue(fixedCodePreview, "No fixed code preview yet.");
 
-    latestFixedCode = "";
-    if (applyFixBtn) applyFixBtn.disabled = true;
+    resetFixState();
     setText(statusBadge, "Cleared");
     if (loader) loader.classList.add("hidden");
+}
+
+function resetFixState() {
+    // Clear previous fix when new code is run
+    latestFixedCode = "";
+    if (applyFixBtn) applyFixBtn.disabled = true;
+    if (fixedCodePreview) {
+        fixedCodePreview.value = "No fixed code preview yet.";
+    }
 }
 
 function escapeHtml(text) {

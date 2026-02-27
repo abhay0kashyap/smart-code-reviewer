@@ -2,12 +2,15 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport=device-width, initial" content="width-scale=1.0" />
     <title>Smart Code Reviewer</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}" />
 </head>
 <body>
-    <div id="loader" class="loader hidden">Running...</div>
+    <div id="loader" class="loader hidden">
+        <div class="loader-spinner"></div>
+        <span id="loaderText">Running...</span>
+    </div>
 
     <div class="shell">
         <header class="header">
