@@ -1,39 +1,80 @@
 # Smart Code Reviewer
 
-Smart Code Reviewer is a beginner-friendly Python coding platform built with Flask.
-It runs Python code safely, explains errors, and provides full-code autofix suggestions using:
+Smart Code Reviewer is a Flask-based AI Tutor IDE for beginners. It safely runs Python code, captures structured errors, explains failures, and generates full fixed code.
 
-1. Deterministic syntax heuristics (always available)
-2. Optional local AI model fallback (Ollama or llama-cpp)
+## Core Features
 
-## Features
+- Safe Python execution with timeout
+- Structured error capture (`type`, `message`, `line`, `traceback`)
+- Beginner-friendly explanations
+- AI Auto Fix with deterministic fallback
+- AI Tutor suggestions and generated code
+- Fixed code preview + apply + re-run flow
+- Rate-limited AI endpoints and centralized logging
 
-- Browser code editor
-- `Run Code` execution workflow
-- Structured error detection:
-  - error type
-  - error message
-  - traceback
-  - error line
-- Highlighted error line view
-- Fixed code preview
-- Apply fixed code back into editor
-- Optional local AI autofix
+## How AI Tutor Works
+
+1. User clicks **Run Code**.
+2. Backend executes code with `analyzer/executor.py`.
+3. If failed, backend returns structured error and explanation.
+4. User clicks **AI Auto Fix**.
+5. Backend sends `code + error_type + error_message + error_line + traceback` to AI service.
+6. AI service enforces structured response and extracts `fixed_code`.
+7. Frontend shows fixed code preview.
+8. User clicks **Apply Fix** and code is re-run automatically.
+9. If still failing, refinement retries run up to 2 times.
+
+## Error Handling Flow
+
+- All API routes return JSON.
+- Execution failures are normalized into:
+  - `success`
+  - `output`
+  - `error`
+  - `execution`
+  - `explanation`
+- AI failures never crash the backend.
+- When model/API is unavailable, deterministic fixes are still attempted.
+
+## Architecture (Text Diagram)
+
+```text
+Browser (templates + static/js/main.js)
+        |
+        v
+Flask App (backend/app_factory.py)
+        |
+        +--> services/execution_service.py
+        |         |
+        |         v
+        |   analyzer/executor.py + analyzer/error_explainer.py
+        |
+        +--> services/ai_service.py
+                  |
+                  v
+            analyzer/ai_fixer.py
+                  |
+                  +--> OpenAI (if configured)
+                  +--> deterministic fallback rules
+
+Shared utilities:
+- utils/logging_config.py
+- utils/rate_limiter.py
+```
 
 ## Project Structure
 
-- `app.py`: Flask routes (`/`, `/run`, `/ai_fix`)
-- `analyzer/executor.py`: safe subprocess code execution
-- `analyzer/error_explainer.py`: beginner-friendly error explanations
-- `analyzer/ai_fixer.py`: deterministic fixer + local model orchestration
-- `analyzer/llm_fix.py`: optional Ollama/llama-cpp adapters
-- `templates/index.html`: UI shell
-- `static/css/styles.css`: UI styling
+- `app.py`: app entrypoint
+- `backend/app_factory.py`: route wiring + error handling + rate limiting
+- `services/`: execution and AI orchestration
+- `utils/`: logging and rate limiting
+- `analyzer/`: executor, explainer, AI fixer, rule logic
+- `templates/`: HTML UI
+- `static/css/styles.css`: modern IDE styling
 - `static/js/main.js`: frontend workflow
+- `logs/`: runtime log files
 
-## Requirements
-
-Install dependencies:
+## Setup
 
 ```bash
 python -m venv .venv
@@ -47,52 +88,25 @@ pip install -r requirements.txt
 python app.py
 ```
 
-Open:
+Open `http://127.0.0.1:8000`
 
-`http://127.0.0.1:8000`
+## Optional AI Configuration
 
-## Autofix Workflow
+Set OpenAI key:
 
-1. Write code in editor
-2. Click **Run Code**
-3. Inspect output/error panels
-4. Click **AI Auto Fix**
-5. Review **Fixed Code Preview**
-6. Click **Apply Fixed Code**
-7. Click **Run Code** again
+```bash
+export OPENAI_API_KEY="your_key"
+```
 
-## Optional Ollama Setup (Local, Free)
-
-If you want local AI fallback:
+Optional local model fallback:
 
 ```bash
 ollama serve
 ollama pull llama3
 ```
 
-The app will try deterministic fixes first, then optional local AI.
-If Ollama is unavailable, the backend still works without crashing.
-
-## Optional llama-cpp Setup
-
-```bash
-pip install llama-cpp-python
-```
-
-Set model path:
-
-```bash
-export LLAMA_CPP_MODEL_PATH=/absolute/path/to/model.gguf
-```
-
 ## Run Tests
 
 ```bash
-python -m unittest tests/test_deterministic_fixer.py tests/test_run_endpoint.py
+.venv/bin/python -m unittest tests/test_deterministic_fixer.py tests/test_run_endpoint.py
 ```
-
-Tests verify:
-
-- Deterministic syntax fixes
-- `/run` returns structured execution + explanation
-- `/ai_fix` returns `autofix` payload
