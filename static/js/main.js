@@ -220,6 +220,20 @@ async function runCode() {
     }
 }
 
+async function requestAiFixForCurrentCode(code) {
+    return postJson(
+        "/ai-fix",
+        {
+            original_code: code,
+            error_type: latestErrorType,
+            error_message: latestErrorMessage,
+            error_line: latestErrorLine,
+            traceback: latestErrorText,
+        },
+        30000
+    );
+}
+
 async function aiFixCode() {
     if (!codeEditor) return;
 
@@ -238,17 +252,7 @@ async function aiFixCode() {
     setLoading(true, "Fixing with AI...");
 
     try {
-        const fixPayload = await postJson(
-            "/ai-fix",
-            {
-                original_code: code,
-                error_type: latestErrorType,
-                error_message: latestErrorMessage,
-                error_line: latestErrorLine,
-                traceback: latestErrorText,
-            },
-            30000
-        );
+        const fixPayload = await requestAiFixForCurrentCode(code);
 
         const fixedCode = String(fixPayload.fixed_code || "").trim();
         if (fixedCode) {
@@ -315,13 +319,61 @@ async function aiAssistCode() {
     }
 }
 
-function applyFixedCode() {
+async function applyFixedCode() {
     if (!codeEditor || !fixedCodePreview || !applyFixBtn) return;
 
     codeEditor.value = fixedCodePreview.value;
     latestFixedCode = codeEditor.value;
     applyFixBtn.disabled = true;
-    setText(statusBadge, "Fixed code applied. Run again.");
+
+    let status = "Fixed code applied. Re-running...";
+    setLoading(true, status);
+
+    try {
+        let runPayload = await postJson("/run", { code: codeEditor.value }, 12000);
+        latestRunCode = codeEditor.value;
+        renderRunResult(runPayload, codeEditor.value);
+
+        if (runPayload.execution?.success) {
+            status = "Run successful after applying fix";
+            return;
+        }
+
+        for (let retry = 1; retry <= 2; retry += 1) {
+            if (!latestErrorType || latestErrorType === "None") break;
+
+            status = `Refining with AI (${retry}/2)...`;
+            setText(statusBadge, status);
+
+            const fixPayload = await requestAiFixForCurrentCode(codeEditor.value);
+            const refinedCode = String(fixPayload.fixed_code || "").trim();
+
+            if (!refinedCode || refinedCode === codeEditor.value.trim()) {
+                break;
+            }
+
+            codeEditor.value = refinedCode;
+            latestFixedCode = refinedCode;
+            setValue(fixedCodePreview, refinedCode);
+
+            runPayload = await postJson("/run", { code: codeEditor.value }, 12000);
+            latestRunCode = codeEditor.value;
+            renderRunResult(runPayload, codeEditor.value);
+
+            if (runPayload.execution?.success) {
+                status = `Run successful after refinement ${retry}`;
+                break;
+            }
+        }
+
+        if (!runPayload.execution?.success) {
+            status = "Applied fix and refinement attempts finished. Error still exists.";
+        }
+    } catch (err) {
+        status = `Apply+rerun failed: ${String(err.message || err)}`;
+    } finally {
+        setLoading(false, status);
+    }
 }
 
 function clearAll() {
