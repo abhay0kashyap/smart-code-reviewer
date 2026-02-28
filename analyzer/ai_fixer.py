@@ -6,6 +6,10 @@ import os
 import re
 from typing import Any, Dict, List, Optional
 
+from utils.env_utils import load_local_env, resolve_openai_api_key
+
+load_local_env()
+
 try:
     from openai import OpenAI
 except Exception:  # pragma: no cover
@@ -533,14 +537,18 @@ def _iterative_indentation_repair(lines: List[str], max_rounds: int = 6) -> Opti
 
 
 def _openai_available() -> bool:
-    return OpenAI is not None and bool(os.getenv("OPENAI_API_KEY"))
+    return OpenAI is not None and bool(resolve_openai_api_key())
 
 
 def _openai_chat(messages: List[Dict[str, str]], temperature: float = 0.0) -> str:
     if OpenAI is None:
         raise RuntimeError("openai package is not installed")
 
-    client = OpenAI()
+    api_key = resolve_openai_api_key()
+    if not api_key:
+        raise RuntimeError("OPENAI_API_KEY is not configured")
+
+    client = OpenAI(api_key=api_key)
     response = client.chat.completions.create(
         model=OPENAI_MODEL,
         messages=messages,
@@ -579,15 +587,16 @@ def ai_tutor_structured_response(
         len(traceback_text),
     )
 
-    if OpenAI is None or not os.getenv("OPENAI_API_KEY"):
+    api_key = resolve_openai_api_key()
+    if OpenAI is None or not api_key:
         LOGGER.warning("OpenAI unavailable or OPENAI_API_KEY missing for structured tutor response.")
         return {
             "explanation": "AI service is unavailable. Falling back to local fixer.",
             "fixed_code": "",
-            "improvements": "Set OPENAI_API_KEY and retry for full AI tutor output.",
+            "improvements": "Set OPENAI_API_KEY (or OPENAI_KEY) and retry for full AI tutor output.",
         }
 
-    client = OpenAI()
+    client = OpenAI(api_key=api_key)
     raw_text = ""
 
     try:
@@ -734,6 +743,22 @@ def deterministic_fix(code: str, execution: Dict[str, Any]) -> Dict[str, Any]:
         if "attributeerror" in error_blob_lower and ".add(" in updated:
             updated = updated.replace(".add(", ".append(")
             reason = "Replaced list .add() with .append()."
+
+        if "zerodivisionerror" in error_blob_lower:
+            literal_guarded = re.sub(r"(?<!/)/\s*0(?:\.0+)?\b", "/ 1", updated)
+            if literal_guarded != updated:
+                updated = literal_guarded
+                reason = "Replaced division by zero literal with a safe divisor."
+            else:
+                variable_guarded = re.sub(
+                    r"(?<!/)/\s*([A-Za-z_][A-Za-z0-9_]*)\b",
+                    r"/ (\1 if \1 != 0 else 1)",
+                    updated,
+                    count=1,
+                )
+                if variable_guarded != updated:
+                    updated = variable_guarded
+                    reason = "Guarded divisor to prevent division by zero."
 
         if updated != target:
             lines[line_idx] = updated

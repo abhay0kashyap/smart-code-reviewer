@@ -98,6 +98,14 @@ Set OpenAI key:
 export OPENAI_API_KEY="your_key"
 ```
 
+or create a local `.env` file:
+
+```bash
+OPENAI_API_KEY=your_key
+```
+
+`OPENAI_KEY` is also accepted as an alias.
+
 Optional local model fallback:
 
 ```bash

@@ -9,6 +9,11 @@ import sys
 # Add the project root to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+from utils.env_utils import load_local_env
+
+# Load local .env values before importing app modules.
+load_local_env()
+
 from backend.app_factory import app
 
 if __name__ == "__main__":
@@ -16,8 +21,6 @@ if __name__ == "__main__":
     
     host = os.getenv("FLASK_HOST", "127.0.0.1")
     port = int(os.getenv("PORT", "8000"))
-    debug = os.getenv("FLASK_DEBUG", "1") == "1"
     
     print(f"Starting Smart Code Reviewer on http://{host}:{port}")
-    uvicorn.run(app, host=host, port=port, debug=debug)
-
+    uvicorn.run("app:app", host=host, port=port, reload=True)

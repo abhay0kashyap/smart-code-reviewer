@@ -1,4 +1,4 @@
-from .app_factory import create_app
+from .app_factory import app
 
-__all__ = ["create_app"]
+__all__ = ["app"]
 

@@ -27,3 +27,169 @@
 2026-02-27 18:42:51 INFO [analyzer.ai_fixer] AI tutor request: type=SyntaxError line=1 code_chars=20 traceback_chars=25
 2026-02-27 18:42:51 WARNING [analyzer.ai_fixer] OpenAI unavailable or OPENAI_API_KEY missing for structured tutor response.
 2026-02-27 18:42:51 WARNING [analyzer.ai_fixer] OpenAI unavailable or OPENAI_API_KEY missing. Falling back to deterministic fixer.
+2026-02-27 21:52:18 INFO [backend.app_factory] /run request code_chars=10
+2026-02-27 21:52:18 INFO [services.execution_service] run_user_code invoked. chars=10
+2026-02-27 21:52:18 INFO [analyzer.executor] Normalizing code before execution. chars=10
+2026-02-27 21:52:18 INFO [analyzer.executor] Code normalized with autopep8.
+2026-02-27 21:52:18 INFO [analyzer.executor] Executing normalized code payload. chars=11 timeout=3s
+2026-02-27 21:52:18 INFO [analyzer.executor] Execution completed successfully.
+2026-02-27 21:52:36 INFO [backend.app_factory] /run request code_chars=12
+2026-02-27 21:52:36 INFO [services.execution_service] run_user_code invoked. chars=12
+2026-02-27 21:52:36 INFO [analyzer.executor] Normalizing code before execution. chars=12
+2026-02-27 21:52:36 INFO [analyzer.executor] Code normalized with autopep8.
+2026-02-27 21:52:36 INFO [analyzer.executor] Executing normalized code payload. chars=13 timeout=3s
+2026-02-27 21:52:36 WARNING [analyzer.executor] Execution failed. type=NameError line=1 msg=name 'hello' is not defined. Did you mean: 'help'?
+2026-02-27 21:52:47 INFO [backend.app_factory] /ai-fix request code_chars=12
+2026-02-27 21:52:47 INFO [backend.app_factory] AI Fix: error_type=NameError, error_message=name 'hello' is not defined. Did you mean: 'help'?
+2026-02-27 21:52:47 ERROR [backend.app_factory] OpenAI API key not configured
+2026-02-27 21:52:47 ERROR [backend.app_factory] OpenAI API failed: OpenAI API key not configured. Set OPENAI_API_KEY environment variable.
+2026-02-27 21:56:02 INFO [backend.app_factory] /run request code_chars=10
+2026-02-27 21:56:02 INFO [services.execution_service] run_user_code invoked. chars=10
+2026-02-27 21:56:02 INFO [analyzer.executor] Normalizing code before execution. chars=10
+2026-02-27 21:56:02 INFO [analyzer.executor] Code normalized with autopep8.
+2026-02-27 21:56:02 INFO [analyzer.executor] Executing normalized code payload. chars=11 timeout=3s
+2026-02-27 21:56:02 WARNING [analyzer.executor] Execution failed. type=ZeroDivisionError line=1 msg=division by zero
+2026-02-27 21:56:36 INFO [backend.app_factory] /ai-fix request code_chars=10
+2026-02-27 21:56:36 INFO [backend.app_factory] AI Fix: error_type=ZeroDivisionError, error_message=division by zero
+2026-02-27 21:56:36 ERROR [backend.app_factory] OpenAI API key not configured
+2026-02-27 21:56:36 WARNING [backend.app_factory] OpenAI API failed: OpenAI API key not configured. Set OPENAI_API_KEY environment variable., trying deterministic fallback
+2026-02-27 22:00:55 INFO [backend.app_factory] /run request code_chars=56
+2026-02-27 22:00:55 INFO [services.execution_service] run_user_code invoked. chars=56
+2026-02-27 22:00:55 INFO [analyzer.executor] Normalizing code before execution. chars=56
+2026-02-27 22:00:55 INFO [analyzer.executor] Code normalized with autopep8.
+2026-02-27 22:00:55 INFO [analyzer.executor] Executing normalized code payload. chars=57 timeout=3s
+2026-02-27 22:00:55 WARNING [analyzer.executor] Execution failed. type=SyntaxError line=3 msg=invalid syntax
+2026-02-27 22:00:55 INFO [backend.app_factory] /ai-fix request code_chars=56
+2026-02-27 22:00:55 INFO [backend.app_factory] AI Fix: error_type=SyntaxError, error_message=invalid syntax
+2026-02-27 22:00:55 ERROR [backend.app_factory] OpenAI API key not configured
+2026-02-27 22:00:55 WARNING [backend.app_factory] OpenAI API failed: OpenAI API key not configured. Set OPENAI_API_KEY environment variable., trying deterministic fallback
+2026-02-27 22:00:55 INFO [backend.app_factory] Deterministic fix succeeded, fixed_code_chars=55
+2026-02-27 22:00:56 INFO [backend.app_factory] /run request code_chars=55
+2026-02-27 22:00:56 INFO [services.execution_service] run_user_code invoked. chars=55
+2026-02-27 22:00:56 INFO [analyzer.executor] Normalizing code before execution. chars=55
+2026-02-27 22:00:56 INFO [analyzer.executor] Code normalized with autopep8.
+2026-02-27 22:00:56 INFO [analyzer.executor] Executing normalized code payload. chars=56 timeout=3s
+2026-02-27 22:00:56 INFO [analyzer.executor] Execution completed successfully.
+2026-02-27 22:02:19 INFO [backend.app_factory] /run request code_chars=39
+2026-02-27 22:02:19 INFO [services.execution_service] run_user_code invoked. chars=39
+2026-02-27 22:02:19 INFO [analyzer.executor] Normalizing code before execution. chars=39
+2026-02-27 22:02:19 INFO [analyzer.executor] Code normalized with autopep8.
+2026-02-27 22:02:19 INFO [analyzer.executor] Executing normalized code payload. chars=40 timeout=3s
+2026-02-27 22:02:19 WARNING [analyzer.executor] Execution failed. type=SyntaxError line=2 msg='(' was never closed
+2026-02-27 22:02:20 INFO [backend.app_factory] /ai-fix request code_chars=39
+2026-02-27 22:02:20 INFO [backend.app_factory] AI Fix: error_type=SyntaxError, error_message='(' was never closed
+2026-02-27 22:02:20 ERROR [backend.app_factory] OpenAI API key not configured
+2026-02-27 22:02:20 WARNING [backend.app_factory] OpenAI API failed: OpenAI API key not configured. Set OPENAI_API_KEY environment variable., trying deterministic fallback
+2026-02-27 22:02:20 INFO [backend.app_factory] Deterministic fix succeeded, fixed_code_chars=31
+2026-02-27 22:02:22 INFO [backend.app_factory] /run request code_chars=31
+2026-02-27 22:02:22 INFO [services.execution_service] run_user_code invoked. chars=31
+2026-02-27 22:02:22 INFO [analyzer.executor] Normalizing code before execution. chars=31
+2026-02-27 22:02:22 INFO [analyzer.executor] Code normalized with autopep8.
+2026-02-27 22:02:22 INFO [analyzer.executor] Executing normalized code payload. chars=32 timeout=3s
+2026-02-27 22:02:22 INFO [analyzer.executor] Execution completed successfully.
+2026-02-27 22:02:24 INFO [backend.app_factory] /run request code_chars=31
+2026-02-27 22:02:24 INFO [services.execution_service] run_user_code invoked. chars=31
+2026-02-27 22:02:24 INFO [analyzer.executor] Normalizing code before execution. chars=31
+2026-02-27 22:02:24 INFO [analyzer.executor] Code normalized with autopep8.
+2026-02-27 22:02:24 INFO [analyzer.executor] Executing normalized code payload. chars=32 timeout=3s
+2026-02-27 22:02:24 INFO [analyzer.executor] Execution completed successfully.
+2026-02-27 22:02:34 INFO [backend.app_factory] /run request code_chars=40
+2026-02-27 22:02:34 INFO [services.execution_service] run_user_code invoked. chars=40
+2026-02-27 22:02:34 INFO [analyzer.executor] Normalizing code before execution. chars=40
+2026-02-27 22:02:34 INFO [analyzer.executor] Code normalized with autopep8.
+2026-02-27 22:02:34 INFO [analyzer.executor] Executing normalized code payload. chars=41 timeout=3s
+2026-02-27 22:02:34 INFO [analyzer.executor] Execution completed successfully.
+2026-02-27 22:02:43 INFO [backend.app_factory] /run request code_chars=33
+2026-02-27 22:02:43 INFO [services.execution_service] run_user_code invoked. chars=33
+2026-02-27 22:02:43 INFO [analyzer.executor] Normalizing code before execution. chars=33
+2026-02-27 22:02:43 INFO [analyzer.executor] Code normalized with autopep8.
+2026-02-27 22:02:43 INFO [analyzer.executor] Executing normalized code payload. chars=34 timeout=3s
+2026-02-27 22:02:43 WARNING [analyzer.executor] Execution failed. type=NameError line=2 msg=name 'age' is not defined
+2026-02-27 22:02:45 INFO [backend.app_factory] /ai-fix request code_chars=33
+2026-02-27 22:02:45 INFO [backend.app_factory] AI Fix: error_type=NameError, error_message=name 'age' is not defined
+2026-02-27 22:02:45 ERROR [backend.app_factory] OpenAI API key not configured
+2026-02-27 22:02:45 WARNING [backend.app_factory] OpenAI API failed: OpenAI API key not configured. Set OPENAI_API_KEY environment variable., trying deterministic fallback
+2026-02-27 22:02:45 INFO [backend.app_factory] Deterministic fix succeeded, fixed_code_chars=35
+2026-02-27 22:02:46 INFO [backend.app_factory] /run request code_chars=35
+2026-02-27 22:02:46 INFO [services.execution_service] run_user_code invoked. chars=35
+2026-02-27 22:02:46 INFO [analyzer.executor] Normalizing code before execution. chars=35
+2026-02-27 22:02:46 INFO [analyzer.executor] Code normalized with autopep8.
+2026-02-27 22:02:46 INFO [analyzer.executor] Executing normalized code payload. chars=36 timeout=3s
+2026-02-27 22:02:46 INFO [analyzer.executor] Execution completed successfully.
+2026-02-27 22:02:48 INFO [backend.app_factory] /run request code_chars=35
+2026-02-27 22:02:48 INFO [services.execution_service] run_user_code invoked. chars=35
+2026-02-27 22:02:48 INFO [analyzer.executor] Normalizing code before execution. chars=35
+2026-02-27 22:02:48 INFO [analyzer.executor] Code normalized with autopep8.
+2026-02-27 22:02:48 INFO [analyzer.executor] Executing normalized code payload. chars=36 timeout=3s
+2026-02-27 22:02:48 INFO [analyzer.executor] Execution completed successfully.
+2026-02-27 22:02:58 INFO [backend.app_factory] /run request code_chars=23
+2026-02-27 22:02:58 INFO [services.execution_service] run_user_code invoked. chars=23
+2026-02-27 22:02:58 INFO [analyzer.executor] Normalizing code before execution. chars=23
+2026-02-27 22:02:58 INFO [analyzer.executor] Code normalized with autopep8.
+2026-02-27 22:02:58 INFO [analyzer.executor] Executing normalized code payload. chars=24 timeout=3s
+2026-02-27 22:02:58 WARNING [analyzer.executor] Execution failed. type=ZeroDivisionError line=2 msg=division by zero
+2026-02-27 22:02:59 INFO [backend.app_factory] /ai-fix request code_chars=23
+2026-02-27 22:02:59 INFO [backend.app_factory] AI Fix: error_type=ZeroDivisionError, error_message=division by zero
+2026-02-27 22:02:59 ERROR [backend.app_factory] OpenAI API key not configured
+2026-02-27 22:02:59 WARNING [backend.app_factory] OpenAI API failed: OpenAI API key not configured. Set OPENAI_API_KEY environment variable., trying deterministic fallback
+2026-02-27 22:03:01 INFO [backend.app_factory] /ai-fix request code_chars=23
+2026-02-27 22:03:01 INFO [backend.app_factory] AI Fix: error_type=ZeroDivisionError, error_message=division by zero
+2026-02-27 22:03:01 ERROR [backend.app_factory] OpenAI API key not configured
+2026-02-27 22:03:01 WARNING [backend.app_factory] OpenAI API failed: OpenAI API key not configured. Set OPENAI_API_KEY environment variable., trying deterministic fallback
+2026-02-27 22:07:08 INFO [backend.app_factory] /ai-fix request code_chars=23
+2026-02-27 22:07:08 INFO [backend.app_factory] AI Fix: error_type=ZeroDivisionError, error_message=division by zero
+2026-02-27 22:07:08 ERROR [backend.app_factory] OpenAI API key not configured
+2026-02-27 22:07:08 WARNING [backend.app_factory] OpenAI API failed: OpenAI API key not configured. Set OPENAI_API_KEY environment variable., trying deterministic fallback
+2026-02-28 00:12:39 INFO [backend.app_factory] /run request code_chars=26
+2026-02-28 00:12:39 INFO [services.execution_service] run_user_code invoked. chars=26
+2026-02-28 00:12:39 INFO [analyzer.executor] Normalizing code before execution. chars=26
+2026-02-28 00:12:39 INFO [analyzer.executor] Code normalized with autopep8.
+2026-02-28 00:12:39 INFO [analyzer.executor] Executing normalized code payload. chars=23 timeout=3s
+2026-02-28 00:12:39 WARNING [analyzer.executor] Execution failed. type=SyntaxError line=1 msg=expected ':'
+2026-02-28 00:12:40 INFO [backend.app_factory] /ai-fix request code_chars=26
+2026-02-28 00:12:40 INFO [backend.app_factory] AI Fix: error_type=SyntaxError, error_message=expected ':'
+2026-02-28 00:12:40 ERROR [backend.app_factory] OpenAI API key not configured
+2026-02-28 00:12:40 WARNING [backend.app_factory] OpenAI API failed: OpenAI API key not configured. Set OPENAI_API_KEY environment variable., trying deterministic fallback
+2026-02-28 00:17:06 INFO [backend.app_factory] /ai-fix request code_chars=23
+2026-02-28 00:17:06 INFO [backend.app_factory] AI Fix: error_type=ZeroDivisionError, error_message=division by zero
+2026-02-28 00:17:06 ERROR [backend.app_factory] OpenAI API key not configured
+2026-02-28 00:17:06 WARNING [backend.app_factory] OpenAI API failed: OpenAI API key not configured. Set OPENAI_API_KEY (or OPENAI_KEY) in your environment or .env file., trying deterministic fallback
+2026-02-28 00:17:06 INFO [httpx] HTTP Request: POST http://testserver/ai-fix "HTTP/1.1 200 OK"
+2026-02-28 00:17:18 INFO [backend.app_factory] /ai-fix request code_chars=23
+2026-02-28 00:17:18 INFO [backend.app_factory] AI Fix: error_type=ZeroDivisionError, error_message=division by zero
+2026-02-28 00:17:18 ERROR [backend.app_factory] OpenAI API key not configured
+2026-02-28 00:17:18 WARNING [backend.app_factory] OpenAI API failed: OpenAI API key not configured. Set OPENAI_API_KEY (or OPENAI_KEY) in your environment or .env file., trying deterministic fallback
+2026-02-28 00:17:18 INFO [backend.app_factory] Deterministic fix succeeded, fixed_code_chars=23
+2026-02-28 00:17:18 INFO [httpx] HTTP Request: POST http://testserver/ai-fix "HTTP/1.1 200 OK"
+2026-02-28 00:18:04 INFO [backend.app_factory] /ai-fix request code_chars=23
+2026-02-28 00:18:04 INFO [backend.app_factory] AI Fix: error_type=ZeroDivisionError, error_message=division by zero
+2026-02-28 00:18:04 ERROR [backend.app_factory] OpenAI API key not configured
+2026-02-28 00:18:04 WARNING [backend.app_factory] OpenAI API failed: OpenAI API key not configured. Set OPENAI_API_KEY (or OPENAI_KEY) in your environment or .env file., trying deterministic fallback
+2026-02-28 00:18:04 INFO [backend.app_factory] Deterministic fix succeeded, fixed_code_chars=23
+2026-02-28 00:18:04 INFO [httpx] HTTP Request: POST http://testserver/ai-fix "HTTP/1.1 200 OK"
+2026-02-28 00:24:49 INFO [backend.app_factory] /run request code_chars=56
+2026-02-28 00:24:49 INFO [services.execution_service] run_user_code invoked. chars=56
+2026-02-28 00:24:49 INFO [analyzer.executor] Normalizing code before execution. chars=56
+2026-02-28 00:24:49 INFO [analyzer.executor] Code normalized with autopep8.
+2026-02-28 00:24:49 INFO [analyzer.executor] Executing normalized code payload. chars=57 timeout=3s
+2026-02-28 00:24:49 WARNING [analyzer.executor] Execution failed. type=SyntaxError line=3 msg=invalid syntax
+2026-02-28 00:24:54 INFO [backend.app_factory] /run request code_chars=26
+2026-02-28 00:24:54 INFO [services.execution_service] run_user_code invoked. chars=26
+2026-02-28 00:24:54 INFO [analyzer.executor] Normalizing code before execution. chars=26
+2026-02-28 00:24:54 INFO [analyzer.executor] Code normalized with autopep8.
+2026-02-28 00:24:54 INFO [analyzer.executor] Executing normalized code payload. chars=23 timeout=3s
+2026-02-28 00:24:54 WARNING [analyzer.executor] Execution failed. type=SyntaxError line=1 msg=expected ':'
+2026-02-28 00:24:55 INFO [backend.app_factory] /ai-fix request code_chars=26
+2026-02-28 00:24:55 INFO [backend.app_factory] AI Fix: error_type=SyntaxError, error_message=expected ':'
+2026-02-28 00:24:55 ERROR [backend.app_factory] OpenAI API key not configured
+2026-02-28 00:24:55 WARNING [backend.app_factory] OpenAI API failed: OpenAI API key not configured. Set OPENAI_API_KEY (or OPENAI_KEY) in your environment or .env file., trying deterministic fallback
+2026-02-28 13:51:07 INFO [backend.app_factory] /run request code_chars=26
+2026-02-28 13:51:07 INFO [services.execution_service] run_user_code invoked. chars=26
+2026-02-28 13:51:07 INFO [analyzer.executor] Normalizing code before execution. chars=26
+2026-02-28 13:51:07 INFO [analyzer.executor] Code normalized with autopep8.
+2026-02-28 13:51:07 INFO [analyzer.executor] Executing normalized code payload. chars=23 timeout=3s
+2026-02-28 13:51:07 WARNING [analyzer.executor] Execution failed. type=SyntaxError line=1 msg=expected ':'
+2026-02-28 13:51:08 INFO [backend.app_factory] /ai-fix request code_chars=26
+2026-02-28 13:51:08 INFO [backend.app_factory] AI Fix: error_type=SyntaxError, error_message=expected ':'
+2026-02-28 13:51:08 ERROR [backend.app_factory] OpenAI API key not configured
+2026-02-28 13:51:08 WARNING [backend.app_factory] OpenAI API failed: OpenAI API key not configured. Set OPENAI_API_KEY (or OPENAI_KEY) in your environment or .env file., trying deterministic fallback

@@ -232,8 +232,10 @@ async function requestAiFixForCurrentCode(code) {
         error: latestErrorType && latestErrorType !== "None" ? {
             error_type: latestErrorType,
             error_message: latestErrorMessage,
-            traceback: latestErrorText
-        } : undefined
+            traceback: latestErrorText,
+            error_line: latestErrorLine
+        } : undefined,
+        error_line: latestErrorLine
     };
     
     console.log("AI Fix Request:", {

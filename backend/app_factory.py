@@ -14,9 +14,17 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+from fastapi.staticfiles import StaticFiles
 
 from services.execution_service import run_user_code
+from utils.env_utils import load_local_env, resolve_openai_api_key
 from utils.logging_config import configure_logging
+
+# Load local .env values for local development before reading env vars.
+load_local_env()
+
+# Import after env load so model/key env vars are available during module init.
+from analyzer.ai_fixer import deterministic_fix
 
 # Import OpenAI
 try:
@@ -31,6 +39,9 @@ LOGGER = logging.getLogger(__name__)
 # FastAPI app
 app = FastAPI(title="Smart Code Reviewer API")
 
+# Mount static files
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
@@ -42,7 +53,7 @@ app.add_middleware(
 
 # Environment variables
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+OPENAI_FIX_MODEL = os.getenv("OPENAI_FIX_MODEL", OPENAI_MODEL)
 
 
 # ============ Request Models ============
@@ -57,6 +68,7 @@ class AIFixRequest(BaseModel):
     error_type: Optional[str] = None
     error_message: Optional[str] = None
     traceback: Optional[str] = None
+    error_line: Optional[int] = None
 
 
 class AIAssistRequest(BaseModel):
@@ -114,13 +126,14 @@ def _call_openai(prompt: str) -> tuple:
     """
     Call OpenAI API and return (success, response_text, error_message)
     """
-    global OPENAI_API_KEY
-    
-    # Check API key
-    api_key = os.getenv("OPENAI_API_KEY", "")
+    api_key = resolve_openai_api_key()
     if not api_key:
         LOGGER.error("OpenAI API key not configured")
-        return False, "", "OpenAI API key not configured. Set OPENAI_API_KEY environment variable."
+        return (
+            False,
+            "",
+            "OpenAI API key not configured. Set OPENAI_API_KEY (or OPENAI_KEY) in your environment or .env file.",
+        )
     
     if OpenAI is None:
         LOGGER.error("OpenAI package not installed")
@@ -132,7 +145,7 @@ def _call_openai(prompt: str) -> tuple:
         # Try responses API first (newer)
         try:
             response = client.responses.create(
-                model="gpt-4.1-mini",
+                model=OPENAI_FIX_MODEL,
                 input=prompt,
             )
             raw_text = str(getattr(response, "output_text", "") or "")
@@ -144,7 +157,7 @@ def _call_openai(prompt: str) -> tuple:
         
         # Fallback to chat completions
         response = client.chat.completions.create(
-            model="gpt-4.1-mini",
+            model=OPENAI_FIX_MODEL,
             messages=[
                 {"role": "system", "content": "You are a senior Python developer. Return ONLY valid Python code. No explanations, no markdown."},
                 {"role": "user", "content": prompt}
@@ -234,12 +247,21 @@ async def ai_fix(request: AIFixRequest):
     error_type = ""
     error_message = ""
     traceback_text = ""
+    error_line: Optional[int] = None
     
     # From error object (error field)
     if request.error and isinstance(request.error, dict):
         error_type = str(request.error.get("error_type", ""))
         error_message = str(request.error.get("error_message", ""))
         traceback_text = str(request.error.get("traceback", ""))
+        raw_error_line = request.error.get("error_line")
+        if isinstance(raw_error_line, int):
+            error_line = raw_error_line
+        elif raw_error_line is not None:
+            try:
+                error_line = int(raw_error_line)
+            except (TypeError, ValueError):
+                error_line = None
     
     # From direct fields (override if provided)
     if request.error_type:
@@ -248,6 +270,8 @@ async def ai_fix(request: AIFixRequest):
         error_message = str(request.error_message)
     if request.traceback:
         traceback_text = str(request.traceback)
+    if request.error_line is not None:
+        error_line = int(request.error_line)
     
     LOGGER.info(f"AI Fix: error_type={error_type}, error_message={error_message[:100] if error_message else ''}")
     
@@ -268,11 +292,34 @@ async def ai_fix(request: AIFixRequest):
     success, raw_response, error_msg = _call_openai(prompt)
     
     if not success:
-        LOGGER.error(f"OpenAI API failed: {error_msg}")
+        LOGGER.warning(f"OpenAI API failed: {error_msg}, trying deterministic fallback")
+        
+        # Use deterministic fallback when OpenAI is not available
+        execution_context = {
+            "error_type": error_type,
+            "error_message": error_message,
+            "traceback": traceback_text,
+            "error_line": error_line,
+        }
+        fallback = deterministic_fix(code, execution_context)
+        
+        if fallback.get("fix_available"):
+            fixed_code = fallback.get("fixed_code", "")
+            LOGGER.info(f"Deterministic fix succeeded, fixed_code_chars={len(fixed_code)}")
+            return JSONResponse(
+                content={
+                    "success": True,
+                    "fixed_code": fixed_code,
+                    "error": "",
+                    "source": "deterministic"
+                }
+            )
+        
+        # No fix available
         return JSONResponse(
             content={
                 "success": False,
-                "error": error_msg,
+                "error": error_msg + " (No deterministic fix available)",
                 "fixed_code": ""
             }
         )
@@ -325,4 +372,3 @@ if __name__ == "__main__":
     host = os.getenv("FLASK_HOST", "127.0.0.1")
     port = int(os.getenv("PORT", "8000"))
     uvicorn.run(app, host=host, port=port)
-

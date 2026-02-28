@@ -43,6 +43,19 @@ class DeterministicFixerTests(unittest.TestCase):
         self.assertTrue(result["fix_available"])
         self.assertEqual(result["fixed_code"], "print(\"hi\")")
 
+    def test_fix_zero_division_literal(self):
+        code = "num = 10\nprint(num / 0)"
+        execution = {
+            "error_type": "ZeroDivisionError",
+            "error_line": 2,
+            "error_message": "division by zero",
+            "traceback": "ZeroDivisionError: division by zero",
+        }
+
+        result = deterministic_fix(code, execution)
+        self.assertTrue(result["fix_available"])
+        self.assertEqual(result["fixed_code"], "num = 10\nprint(num / 1)")
+
 
 if __name__ == "__main__":
     unittest.main()
