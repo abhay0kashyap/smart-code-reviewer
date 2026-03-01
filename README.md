@@ -105,6 +105,7 @@ OPENAI_API_KEY=your_key
 ```
 
 `OPENAI_KEY` is also accepted as an alias.
+If your IDE starts the app from `backend/`, `.env` in either project root or `backend/` is supported.
 
 Optional local model fallback:
 

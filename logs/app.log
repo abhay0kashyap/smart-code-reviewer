@@ -193,3 +193,637 @@
 2026-02-28 13:51:08 INFO [backend.app_factory] AI Fix: error_type=SyntaxError, error_message=expected ':'
 2026-02-28 13:51:08 ERROR [backend.app_factory] OpenAI API key not configured
 2026-02-28 13:51:08 WARNING [backend.app_factory] OpenAI API failed: OpenAI API key not configured. Set OPENAI_API_KEY (or OPENAI_KEY) in your environment or .env file., trying deterministic fallback
+2026-02-28 20:14:18 INFO [backend.app_factory] /run request code_chars=56
+2026-02-28 20:14:18 INFO [services.execution_service] run_user_code invoked. chars=56
+2026-02-28 20:14:18 INFO [analyzer.executor] Normalizing code before execution. chars=56
+2026-02-28 20:14:18 INFO [analyzer.executor] Code normalized with autopep8.
+2026-02-28 20:14:18 INFO [analyzer.executor] Executing normalized code payload. chars=57 timeout=3s
+2026-02-28 20:14:18 WARNING [analyzer.executor] Execution failed. type=SyntaxError line=3 msg=invalid syntax
+2026-02-28 20:14:19 INFO [backend.app_factory] /ai-fix request code_chars=56
+2026-02-28 20:14:19 INFO [backend.app_factory] AI Fix: error_type=SyntaxError, error_message=invalid syntax
+2026-02-28 20:14:26 INFO [httpx] HTTP Request: POST https://api.openai.com/v1/responses "HTTP/1.1 429 Too Many Requests"
+2026-02-28 20:14:26 INFO [openai._base_client] Retrying request to /responses in 0.496679 seconds
+2026-02-28 20:14:32 INFO [httpx] HTTP Request: POST https://api.openai.com/v1/responses "HTTP/1.1 429 Too Many Requests"
+2026-02-28 20:14:32 INFO [openai._base_client] Retrying request to /responses in 0.866002 seconds
+2026-02-28 20:14:34 INFO [openai._base_client] Retrying request to /responses in 0.384625 seconds
+2026-02-28 20:14:35 INFO [openai._base_client] Retrying request to /responses in 0.975048 seconds
+2026-02-28 20:14:36 WARNING [backend.app_factory] OpenAI responses API failed: Connection error.
+2026-02-28 20:14:36 INFO [openai._base_client] Retrying request to /chat/completions in 0.466892 seconds
+2026-02-28 20:14:36 INFO [openai._base_client] Retrying request to /chat/completions in 0.820366 seconds
+2026-02-28 20:14:37 ERROR [backend.app_factory] OpenAI API error: Connection error.
+Traceback (most recent call last):
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.13/site-packages/httpx/_transports/default.py", line 101, in map_httpcore_exceptions
+    yield
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.13/site-packages/httpx/_transports/default.py", line 250, in handle_request
+    resp = self._pool.handle_request(req)
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.13/site-packages/httpcore/_sync/connection_pool.py", line 256, in handle_request
+    raise exc from None
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.13/site-packages/httpcore/_sync/connection_pool.py", line 236, in handle_request
+    response = connection.handle_request(
+        pool_request.request
+    )
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.13/site-packages/httpcore/_sync/connection.py", line 101, in handle_request
+    raise exc
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.13/site-packages/httpcore/_sync/connection.py", line 78, in handle_request
+    stream = self._connect(request)
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.13/site-packages/httpcore/_sync/connection.py", line 124, in _connect
+    stream = self._network_backend.connect_tcp(**kwargs)
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.13/site-packages/httpcore/_backends/sync.py", line 207, in connect_tcp
+    with map_exceptions(exc_map):
+         ~~~~~~~~~~~~~~^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.13/3.13.2/Frameworks/Python.framework/Versions/3.13/lib/python3.13/contextlib.py", line 162, in __exit__
+    self.gen.throw(value)
+    ~~~~~~~~~~~~~~^^^^^^^
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.13/site-packages/httpcore/_exceptions.py", line 14, in map_exceptions
+    raise to_exc(exc) from exc
+httpcore.ConnectError: [Errno 8] nodename nor servname provided, or not known
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.13/site-packages/openai/_base_client.py", line 955, in _request
+    response = self._client.send(
+        request,
+        stream=stream or self._should_stream_response_body(request=request),
+        **kwargs,
+    )
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.13/site-packages/httpx/_client.py", line 914, in send
+    response = self._send_handling_auth(
+        request,
+    ...<2 lines>...
+        history=[],
+    )
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.13/site-packages/httpx/_client.py", line 942, in _send_handling_auth
+    response = self._send_handling_redirects(
+        request,
+        follow_redirects=follow_redirects,
+        history=history,
+    )
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.13/site-packages/httpx/_client.py", line 979, in _send_handling_redirects
+    response = self._send_single_request(request)
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.13/site-packages/httpx/_client.py", line 1014, in _send_single_request
+    response = transport.handle_request(request)
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.13/site-packages/httpx/_transports/default.py", line 249, in handle_request
+    with map_httpcore_exceptions():
+         ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/opt/homebrew/Cellar/python@3.13/3.13.2/Frameworks/Python.framework/Versions/3.13/lib/python3.13/contextlib.py", line 162, in __exit__
+    self.gen.throw(value)
+    ~~~~~~~~~~~~~~^^^^^^^
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.13/site-packages/httpx/_transports/default.py", line 118, in map_httpcore_exceptions
+    raise mapped_exc(message) from exc
+httpx.ConnectError: [Errno 8] nodename nor servname provided, or not known
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/abhaykashyap/smart-code-reviewer/backend/app_factory.py", line 159, in _call_openai
+    response = client.chat.completions.create(
+        model=OPENAI_FIX_MODEL,
+    ...<4 lines>...
+        temperature=0,
+    )
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.13/site-packages/openai/_utils/_utils.py", line 279, in wrapper
+    return func(*args, **kwargs)
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.13/site-packages/openai/resources/chat/completions/completions.py", line 914, in create
+    return self._post(
+           ~~~~~~~~~~^
+        "/chat/completions",
+        ^^^^^^^^^^^^^^^^^^^^
+    ...<41 lines>...
+        stream_cls=Stream[ChatCompletionChunk],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.13/site-packages/openai/_base_client.py", line 1242, in post
+    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))
+                           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.13/site-packages/openai/_base_client.py", line 919, in request
+    return self._request(
+           ~~~~~~~~~~~~~^
+        cast_to=cast_to,
+        ^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+        retries_taken=retries_taken,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.13/site-packages/openai/_base_client.py", line 979, in _request
+    return self._retry_request(
+           ~~~~~~~~~~~~~~~~~~~^
+        input_options,
+        ^^^^^^^^^^^^^^
+    ...<4 lines>...
+        response_headers=None,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.13/site-packages/openai/_base_client.py", line 1057, in _retry_request
+    return self._request(
+           ~~~~~~~~~~~~~^
+        options=options,
+        ^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+        stream_cls=stream_cls,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.13/site-packages/openai/_base_client.py", line 979, in _request
+    return self._retry_request(
+           ~~~~~~~~~~~~~~~~~~~^
+        input_options,
+        ^^^^^^^^^^^^^^
+    ...<4 lines>...
+        response_headers=None,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.13/site-packages/openai/_base_client.py", line 1057, in _retry_request
+    return self._request(
+           ~~~~~~~~~~~~~^
+        options=options,
+        ^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+        stream_cls=stream_cls,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.13/site-packages/openai/_base_client.py", line 989, in _request
+    raise APIConnectionError(request=request) from err
+openai.APIConnectionError: Connection error.
+2026-02-28 20:14:39 INFO [httpx] HTTP Request: POST https://api.openai.com/v1/responses "HTTP/1.1 429 Too Many Requests"
+2026-02-28 20:14:39 WARNING [backend.app_factory] OpenAI responses API failed: Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}
+2026-02-28 20:14:40 INFO [httpx] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-02-28 20:14:40 INFO [openai._base_client] Retrying request to /chat/completions in 0.382997 seconds
+2026-02-28 20:14:41 INFO [httpx] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-02-28 20:14:41 INFO [openai._base_client] Retrying request to /chat/completions in 0.827147 seconds
+2026-02-28 20:14:42 INFO [httpx] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-02-28 20:14:42 ERROR [backend.app_factory] OpenAI API error: Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}
+Traceback (most recent call last):
+  File "/Users/abhaykashyap/smart-code-reviewer/backend/app_factory.py", line 159, in _call_openai
+    response = client.chat.completions.create(
+        model=OPENAI_FIX_MODEL,
+    ...<4 lines>...
+        temperature=0,
+    )
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.14/site-packages/openai/_utils/_utils.py", line 279, in wrapper
+    return func(*args, **kwargs)
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.14/site-packages/openai/resources/chat/completions/completions.py", line 914, in create
+    return self._post(
+           ~~~~~~~~~~^
+        "/chat/completions",
+        ^^^^^^^^^^^^^^^^^^^^
+    ...<41 lines>...
+        stream_cls=Stream[ChatCompletionChunk],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.14/site-packages/openai/_base_client.py", line 1242, in post
+    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))
+                           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.14/site-packages/openai/_base_client.py", line 919, in request
+    return self._request(
+           ~~~~~~~~~~~~~^
+        cast_to=cast_to,
+        ^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+        retries_taken=retries_taken,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.14/site-packages/openai/_base_client.py", line 1008, in _request
+    return self._retry_request(
+           ~~~~~~~~~~~~~~~~~~~^
+        input_options,
+        ^^^^^^^^^^^^^^
+    ...<4 lines>...
+        stream_cls=stream_cls,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.14/site-packages/openai/_base_client.py", line 1057, in _retry_request
+    return self._request(
+           ~~~~~~~~~~~~~^
+        options=options,
+        ^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+        stream_cls=stream_cls,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.14/site-packages/openai/_base_client.py", line 1008, in _request
+    return self._retry_request(
+           ~~~~~~~~~~~~~~~~~~~^
+        input_options,
+        ^^^^^^^^^^^^^^
+    ...<4 lines>...
+        stream_cls=stream_cls,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.14/site-packages/openai/_base_client.py", line 1057, in _retry_request
+    return self._request(
+           ~~~~~~~~~~~~~^
+        options=options,
+        ^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+        stream_cls=stream_cls,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.14/site-packages/openai/_base_client.py", line 1023, in _request
+    raise self._make_status_error_from_response(err.response) from None
+openai.RateLimitError: Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}
+2026-02-28 20:14:42 WARNING [backend.app_factory] OpenAI API failed: OpenAI API failed: Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}, trying deterministic fallback
+2026-02-28 20:14:42 INFO [backend.app_factory] Deterministic fix succeeded, fixed_code_chars=55
+2026-03-01 05:49:19 INFO [backend.app_factory] /ai-fix request code_chars=14
+2026-03-01 05:49:19 INFO [backend.app_factory] AI Fix: error_type=ZeroDivisionError, error_message=division by zero
+2026-03-01 05:49:25 INFO [httpx] HTTP Request: POST https://api.openai.com/v1/responses "HTTP/1.1 429 Too Many Requests"
+2026-03-01 05:49:25 INFO [openai._base_client] Retrying request to /responses in 0.395028 seconds
+2026-03-01 05:49:31 INFO [httpx] HTTP Request: POST https://api.openai.com/v1/responses "HTTP/1.1 429 Too Many Requests"
+2026-03-01 05:49:31 INFO [openai._base_client] Retrying request to /responses in 0.932646 seconds
+2026-03-01 05:49:37 INFO [httpx] HTTP Request: POST https://api.openai.com/v1/responses "HTTP/1.1 429 Too Many Requests"
+2026-03-01 05:49:37 WARNING [backend.app_factory] OpenAI responses API failed: Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}
+2026-03-01 05:49:38 INFO [httpx] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-03-01 05:49:38 INFO [openai._base_client] Retrying request to /chat/completions in 0.431720 seconds
+2026-03-01 05:49:39 INFO [httpx] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-03-01 05:49:39 INFO [openai._base_client] Retrying request to /chat/completions in 0.773011 seconds
+2026-03-01 05:49:41 INFO [httpx] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-03-01 05:49:41 ERROR [backend.app_factory] OpenAI API error: Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}
+Traceback (most recent call last):
+  File "/Users/abhaykashyap/smart-code-reviewer/backend/app_factory.py", line 159, in _call_openai
+    response = client.chat.completions.create(
+        model=OPENAI_FIX_MODEL,
+    ...<4 lines>...
+        temperature=0,
+    )
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.14/site-packages/openai/_utils/_utils.py", line 279, in wrapper
+    return func(*args, **kwargs)
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.14/site-packages/openai/resources/chat/completions/completions.py", line 914, in create
+    return self._post(
+           ~~~~~~~~~~^
+        "/chat/completions",
+        ^^^^^^^^^^^^^^^^^^^^
+    ...<41 lines>...
+        stream_cls=Stream[ChatCompletionChunk],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.14/site-packages/openai/_base_client.py", line 1242, in post
+    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))
+                           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.14/site-packages/openai/_base_client.py", line 919, in request
+    return self._request(
+           ~~~~~~~~~~~~~^
+        cast_to=cast_to,
+        ^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+        retries_taken=retries_taken,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.14/site-packages/openai/_base_client.py", line 1008, in _request
+    return self._retry_request(
+           ~~~~~~~~~~~~~~~~~~~^
+        input_options,
+        ^^^^^^^^^^^^^^
+    ...<4 lines>...
+        stream_cls=stream_cls,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.14/site-packages/openai/_base_client.py", line 1057, in _retry_request
+    return self._request(
+           ~~~~~~~~~~~~~^
+        options=options,
+        ^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+        stream_cls=stream_cls,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.14/site-packages/openai/_base_client.py", line 1008, in _request
+    return self._retry_request(
+           ~~~~~~~~~~~~~~~~~~~^
+        input_options,
+        ^^^^^^^^^^^^^^
+    ...<4 lines>...
+        stream_cls=stream_cls,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.14/site-packages/openai/_base_client.py", line 1057, in _retry_request
+    return self._request(
+           ~~~~~~~~~~~~~^
+        options=options,
+        ^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+        stream_cls=stream_cls,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.14/site-packages/openai/_base_client.py", line 1023, in _request
+    raise self._make_status_error_from_response(err.response) from None
+openai.RateLimitError: Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}
+2026-03-01 05:49:41 WARNING [backend.app_factory] OpenAI API failed: OpenAI API failed: Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}, trying deterministic fallback
+2026-03-01 05:49:41 INFO [backend.app_factory] Deterministic fix succeeded, fixed_code_chars=15
+2026-03-01 05:49:41 INFO [backend.app_factory] /run request code_chars=56
+2026-03-01 05:49:41 INFO [services.execution_service] run_user_code invoked. chars=56
+2026-03-01 05:49:41 INFO [analyzer.executor] Normalizing code before execution. chars=56
+2026-03-01 05:49:41 INFO [analyzer.executor] Code normalized with autopep8.
+2026-03-01 05:49:41 INFO [analyzer.executor] Executing normalized code payload. chars=57 timeout=3s
+2026-03-01 05:49:41 WARNING [analyzer.executor] Execution failed. type=SyntaxError line=3 msg=invalid syntax
+2026-03-01 05:49:52 INFO [backend.app_factory] /run request code_chars=56
+2026-03-01 05:49:52 INFO [services.execution_service] run_user_code invoked. chars=56
+2026-03-01 05:49:52 INFO [analyzer.executor] Normalizing code before execution. chars=56
+2026-03-01 05:49:52 INFO [analyzer.executor] Code normalized with autopep8.
+2026-03-01 05:49:52 INFO [analyzer.executor] Executing normalized code payload. chars=57 timeout=3s
+2026-03-01 05:49:52 WARNING [analyzer.executor] Execution failed. type=SyntaxError line=3 msg=invalid syntax
+2026-03-01 05:49:54 INFO [backend.app_factory] /ai-fix request code_chars=56
+2026-03-01 05:49:54 INFO [backend.app_factory] AI Fix: error_type=SyntaxError, error_message=invalid syntax
+2026-03-01 05:49:59 INFO [httpx] HTTP Request: POST https://api.openai.com/v1/responses "HTTP/1.1 429 Too Many Requests"
+2026-03-01 05:49:59 INFO [openai._base_client] Retrying request to /responses in 0.492747 seconds
+2026-03-01 05:50:05 INFO [httpx] HTTP Request: POST https://api.openai.com/v1/responses "HTTP/1.1 429 Too Many Requests"
+2026-03-01 05:50:05 INFO [openai._base_client] Retrying request to /responses in 0.912863 seconds
+2026-03-01 05:50:12 INFO [httpx] HTTP Request: POST https://api.openai.com/v1/responses "HTTP/1.1 429 Too Many Requests"
+2026-03-01 05:50:12 WARNING [backend.app_factory] OpenAI responses API failed: Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}
+2026-03-01 05:50:13 INFO [httpx] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-03-01 05:50:13 INFO [openai._base_client] Retrying request to /chat/completions in 0.409643 seconds
+2026-03-01 05:50:14 INFO [httpx] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-03-01 05:50:14 INFO [openai._base_client] Retrying request to /chat/completions in 0.954999 seconds
+2026-03-01 05:50:15 INFO [httpx] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-03-01 05:50:15 ERROR [backend.app_factory] OpenAI API error: Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}
+Traceback (most recent call last):
+  File "/Users/abhaykashyap/smart-code-reviewer/backend/app_factory.py", line 159, in _call_openai
+    response = client.chat.completions.create(
+        model=OPENAI_FIX_MODEL,
+    ...<4 lines>...
+        temperature=0,
+    )
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.14/site-packages/openai/_utils/_utils.py", line 279, in wrapper
+    return func(*args, **kwargs)
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.14/site-packages/openai/resources/chat/completions/completions.py", line 914, in create
+    return self._post(
+           ~~~~~~~~~~^
+        "/chat/completions",
+        ^^^^^^^^^^^^^^^^^^^^
+    ...<41 lines>...
+        stream_cls=Stream[ChatCompletionChunk],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.14/site-packages/openai/_base_client.py", line 1242, in post
+    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))
+                           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.14/site-packages/openai/_base_client.py", line 919, in request
+    return self._request(
+           ~~~~~~~~~~~~~^
+        cast_to=cast_to,
+        ^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+        retries_taken=retries_taken,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.14/site-packages/openai/_base_client.py", line 1008, in _request
+    return self._retry_request(
+           ~~~~~~~~~~~~~~~~~~~^
+        input_options,
+        ^^^^^^^^^^^^^^
+    ...<4 lines>...
+        stream_cls=stream_cls,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.14/site-packages/openai/_base_client.py", line 1057, in _retry_request
+    return self._request(
+           ~~~~~~~~~~~~~^
+        options=options,
+        ^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+        stream_cls=stream_cls,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.14/site-packages/openai/_base_client.py", line 1008, in _request
+    return self._retry_request(
+           ~~~~~~~~~~~~~~~~~~~^
+        input_options,
+        ^^^^^^^^^^^^^^
+    ...<4 lines>...
+        stream_cls=stream_cls,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.14/site-packages/openai/_base_client.py", line 1057, in _retry_request
+    return self._request(
+           ~~~~~~~~~~~~~^
+        options=options,
+        ^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+        stream_cls=stream_cls,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.14/site-packages/openai/_base_client.py", line 1023, in _request
+    raise self._make_status_error_from_response(err.response) from None
+openai.RateLimitError: Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}
+2026-03-01 05:50:15 WARNING [backend.app_factory] OpenAI API failed: OpenAI API failed: Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}, trying deterministic fallback
+2026-03-01 05:50:15 INFO [backend.app_factory] Deterministic fix succeeded, fixed_code_chars=55
+2026-03-01 05:50:18 INFO [backend.app_factory] /run request code_chars=55
+2026-03-01 05:50:18 INFO [services.execution_service] run_user_code invoked. chars=55
+2026-03-01 05:50:18 INFO [analyzer.executor] Normalizing code before execution. chars=55
+2026-03-01 05:50:18 INFO [analyzer.executor] Code normalized with autopep8.
+2026-03-01 05:50:18 INFO [analyzer.executor] Executing normalized code payload. chars=56 timeout=3s
+2026-03-01 05:50:18 INFO [analyzer.executor] Execution completed successfully.
+2026-03-01 05:50:21 INFO [backend.app_factory] /run request code_chars=55
+2026-03-01 05:50:21 INFO [services.execution_service] run_user_code invoked. chars=55
+2026-03-01 05:50:21 INFO [analyzer.executor] Normalizing code before execution. chars=55
+2026-03-01 05:50:21 INFO [analyzer.executor] Code normalized with autopep8.
+2026-03-01 05:50:21 INFO [analyzer.executor] Executing normalized code payload. chars=56 timeout=3s
+2026-03-01 05:50:21 INFO [analyzer.executor] Execution completed successfully.
+2026-03-01 05:50:31 INFO [backend.app_factory] /run request code_chars=26
+2026-03-01 05:50:31 INFO [services.execution_service] run_user_code invoked. chars=26
+2026-03-01 05:50:31 INFO [analyzer.executor] Normalizing code before execution. chars=26
+2026-03-01 05:50:31 INFO [analyzer.executor] Code normalized with autopep8.
+2026-03-01 05:50:31 INFO [analyzer.executor] Executing normalized code payload. chars=23 timeout=3s
+2026-03-01 05:50:31 WARNING [analyzer.executor] Execution failed. type=SyntaxError line=1 msg=expected ':'
+2026-03-01 05:50:33 INFO [backend.app_factory] /ai-fix request code_chars=26
+2026-03-01 05:50:33 INFO [backend.app_factory] AI Fix: error_type=SyntaxError, error_message=expected ':'
+2026-03-01 05:50:40 INFO [httpx] HTTP Request: POST https://api.openai.com/v1/responses "HTTP/1.1 429 Too Many Requests"
+2026-03-01 05:50:40 INFO [openai._base_client] Retrying request to /responses in 0.422778 seconds
+2026-03-01 05:50:46 INFO [httpx] HTTP Request: POST https://api.openai.com/v1/responses "HTTP/1.1 429 Too Many Requests"
+2026-03-01 05:50:46 INFO [openai._base_client] Retrying request to /responses in 0.857698 seconds
+2026-03-01 05:50:53 INFO [httpx] HTTP Request: POST https://api.openai.com/v1/responses "HTTP/1.1 429 Too Many Requests"
+2026-03-01 05:50:53 WARNING [backend.app_factory] OpenAI responses API failed: Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}
+2026-03-01 05:50:53 INFO [httpx] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-03-01 05:50:53 INFO [openai._base_client] Retrying request to /chat/completions in 0.382922 seconds
+2026-03-01 05:50:54 INFO [httpx] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-03-01 05:50:54 INFO [openai._base_client] Retrying request to /chat/completions in 0.782567 seconds
+2026-03-01 05:50:56 INFO [httpx] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-03-01 05:50:56 ERROR [backend.app_factory] OpenAI API error: Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}
+Traceback (most recent call last):
+  File "/Users/abhaykashyap/smart-code-reviewer/backend/app_factory.py", line 159, in _call_openai
+    response = client.chat.completions.create(
+        model=OPENAI_FIX_MODEL,
+    ...<4 lines>...
+        temperature=0,
+    )
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.14/site-packages/openai/_utils/_utils.py", line 279, in wrapper
+    return func(*args, **kwargs)
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.14/site-packages/openai/resources/chat/completions/completions.py", line 914, in create
+    return self._post(
+           ~~~~~~~~~~^
+        "/chat/completions",
+        ^^^^^^^^^^^^^^^^^^^^
+    ...<41 lines>...
+        stream_cls=Stream[ChatCompletionChunk],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.14/site-packages/openai/_base_client.py", line 1242, in post
+    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))
+                           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.14/site-packages/openai/_base_client.py", line 919, in request
+    return self._request(
+           ~~~~~~~~~~~~~^
+        cast_to=cast_to,
+        ^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+        retries_taken=retries_taken,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.14/site-packages/openai/_base_client.py", line 1008, in _request
+    return self._retry_request(
+           ~~~~~~~~~~~~~~~~~~~^
+        input_options,
+        ^^^^^^^^^^^^^^
+    ...<4 lines>...
+        stream_cls=stream_cls,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.14/site-packages/openai/_base_client.py", line 1057, in _retry_request
+    return self._request(
+           ~~~~~~~~~~~~~^
+        options=options,
+        ^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+        stream_cls=stream_cls,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.14/site-packages/openai/_base_client.py", line 1008, in _request
+    return self._retry_request(
+           ~~~~~~~~~~~~~~~~~~~^
+        input_options,
+        ^^^^^^^^^^^^^^
+    ...<4 lines>...
+        stream_cls=stream_cls,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.14/site-packages/openai/_base_client.py", line 1057, in _retry_request
+    return self._request(
+           ~~~~~~~~~~~~~^
+        options=options,
+        ^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+        stream_cls=stream_cls,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.14/site-packages/openai/_base_client.py", line 1023, in _request
+    raise self._make_status_error_from_response(err.response) from None
+openai.RateLimitError: Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}
+2026-03-01 05:50:56 WARNING [backend.app_factory] OpenAI API failed: OpenAI API failed: Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}, trying deterministic fallback
+2026-03-01 05:50:59 INFO [backend.app_factory] /ai-fix request code_chars=26
+2026-03-01 05:50:59 INFO [backend.app_factory] AI Fix: error_type=SyntaxError, error_message=expected ':'
+2026-03-01 05:51:05 INFO [httpx] HTTP Request: POST https://api.openai.com/v1/responses "HTTP/1.1 429 Too Many Requests"
+2026-03-01 05:51:05 INFO [openai._base_client] Retrying request to /responses in 0.477452 seconds
+2026-03-01 05:51:11 INFO [httpx] HTTP Request: POST https://api.openai.com/v1/responses "HTTP/1.1 429 Too Many Requests"
+2026-03-01 05:51:11 INFO [openai._base_client] Retrying request to /responses in 0.757736 seconds
+2026-03-01 05:51:17 INFO [httpx] HTTP Request: POST https://api.openai.com/v1/responses "HTTP/1.1 429 Too Many Requests"
+2026-03-01 05:51:17 WARNING [backend.app_factory] OpenAI responses API failed: Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}
+2026-03-01 05:51:17 INFO [httpx] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-03-01 05:51:17 INFO [openai._base_client] Retrying request to /chat/completions in 0.490188 seconds
+2026-03-01 05:51:18 INFO [httpx] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-03-01 05:51:18 INFO [openai._base_client] Retrying request to /chat/completions in 0.990531 seconds
+2026-03-01 05:51:19 INFO [httpx] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-03-01 05:51:19 ERROR [backend.app_factory] OpenAI API error: Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}
+Traceback (most recent call last):
+  File "/Users/abhaykashyap/smart-code-reviewer/backend/app_factory.py", line 159, in _call_openai
+    response = client.chat.completions.create(
+        model=OPENAI_FIX_MODEL,
+    ...<4 lines>...
+        temperature=0,
+    )
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.14/site-packages/openai/_utils/_utils.py", line 279, in wrapper
+    return func(*args, **kwargs)
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.14/site-packages/openai/resources/chat/completions/completions.py", line 914, in create
+    return self._post(
+           ~~~~~~~~~~^
+        "/chat/completions",
+        ^^^^^^^^^^^^^^^^^^^^
+    ...<41 lines>...
+        stream_cls=Stream[ChatCompletionChunk],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.14/site-packages/openai/_base_client.py", line 1242, in post
+    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))
+                           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.14/site-packages/openai/_base_client.py", line 919, in request
+    return self._request(
+           ~~~~~~~~~~~~~^
+        cast_to=cast_to,
+        ^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+        retries_taken=retries_taken,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.14/site-packages/openai/_base_client.py", line 1008, in _request
+    return self._retry_request(
+           ~~~~~~~~~~~~~~~~~~~^
+        input_options,
+        ^^^^^^^^^^^^^^
+    ...<4 lines>...
+        stream_cls=stream_cls,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.14/site-packages/openai/_base_client.py", line 1057, in _retry_request
+    return self._request(
+           ~~~~~~~~~~~~~^
+        options=options,
+        ^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+        stream_cls=stream_cls,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.14/site-packages/openai/_base_client.py", line 1008, in _request
+    return self._retry_request(
+           ~~~~~~~~~~~~~~~~~~~^
+        input_options,
+        ^^^^^^^^^^^^^^
+    ...<4 lines>...
+        stream_cls=stream_cls,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.14/site-packages/openai/_base_client.py", line 1057, in _retry_request
+    return self._request(
+           ~~~~~~~~~~~~~^
+        options=options,
+        ^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+        stream_cls=stream_cls,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/abhaykashyap/smart-code-reviewer/.venv/lib/python3.14/site-packages/openai/_base_client.py", line 1023, in _request
+    raise self._make_status_error_from_response(err.response) from None
+openai.RateLimitError: Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}
+2026-03-01 05:51:19 WARNING [backend.app_factory] OpenAI API failed: OpenAI API failed: Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}, trying deterministic fallback
